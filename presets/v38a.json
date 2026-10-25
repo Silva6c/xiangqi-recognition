@@ -1,0 +1,45 @@
+{
+  "name": "v38a",
+  "note": "架构轮主案：90 token 格间注意力（ReZero 残差，新增算子仅 Softmax）+ 占子辅助头。依据=v38性能研究 §四实证（邻域密度 U 型：孤立子 47.4% 错误率只有全局机制能救；漏检 4~5 倍于幻觉）。init-from v37/gen_best 交集加载（attn 从零起步，双 lr 10x）。workers 4 = 渲染提速 L1。数据池与 v37 完全一致（七池旧版 real_rf_piece）——架构归因纯净性优先，PATCH 56 hi 池留给下一数据轮。gates=v37 终值 -0.5pt 容差 + 真实域不退（v37 A/B 证伪 wave2 归因：摘毒格只 -1 错，真实域杠杆在架构）。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "attn": true,
+    "aux-head": true,
+    "aux-weight": 0.4,
+    "attn-lr-mult": 10,
+    "init-from": "runs/v37/gen_best.pt",
+    "lr": 5e-5,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 4,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2026,
+    "real-npz": [
+      "data/real_photo_mix.npz",
+      "data/real_photo_recover45.npz",
+      "data/real_photo_v24.npz",
+      "data/real_photo_chessai.npz",
+      "data/real_chessai_piece.npz",
+      "data/real_rf_piece.npz",
+      "data/bench_hot_transplant.npz"
+    ],
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "gen.style.occ",   "op": ">=", "value": 0.657, "note": "v37 终值 0.6616 -0.5pt 容差（v37 已四轴新高）" },
+    { "metric": "gen.piece.occ",   "op": ">=", "value": 0.639, "note": "v37 0.6443 -0.5pt" },
+    { "metric": "gen.angle.occ",   "op": ">=", "value": 0.635, "note": "v37 0.6402 -0.5pt" },
+    { "metric": "gen.roboflow.occ", "op": ">=", "value": 0.533, "note": "v37 0.5385 -0.5pt" },
+    { "metric": "human26.total.err", "op": "<=", "value": 70, "note": "v37 70 不退；架构预期 ≤60（v37 A/B 证伪 wave2 归因后，真实域杠杆在架构）" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 64, "note": "v37 64 不退；stretch 目标 ≤58（v35 水位）验证注意力对孤立子/漏检的增益" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 2, "note": "v37 2 不退；预期 ≥4" },
+    { "metric": "bench.full",      "op": ">=", "value": 2,    "note": "gen_best 口径不退" }
+  ],
+  "baseline": {
+    "note": "v37 双口径基线（架构 A/B 的基准）。",
+    "path": "runs/v37/auto_summary.json"
+  }
+}

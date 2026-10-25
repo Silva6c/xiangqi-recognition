@@ -1,0 +1,129 @@
+{
+ "name": "v62b",
+ "note": "v62b xattn 激活修正轮（docs/v62方案 §六风险2 命中）：v62 FAIL 根因=ReZero α 梯度死区（1250 步 α 仍 ±4e-4，门未开，v2=17 系基座第 14 次重训方差非手术贡献；模块内部参数在学kv_pos 范数 1.77——唯 α 学不动）。修正=α/β 初始化 0→0.1（起步扰动已量化：v2 16 起点、99.6% 格 argmax 与 r3 一致）。xattn 新键初始化 seed 2046 与 v62 逐位同，唯一差 α。判据同 v62 十二门。",
+ "train": {
+  "width": "256,384,640,896",
+  "head-dim": 256,
+  "attn": true,
+  "aux-head": true,
+  "aux-weight": 0.4,
+  "attn-lr-mult": 10,
+  "cell-balance": true,
+  "cell-freq": "data/cell_class_freq.npz",
+  "init-from": "runs/v62b_init.pt",
+  "lr": 5e-05,
+  "total-samples": 150000,
+  "batch": 48,
+  "workers": 2,
+  "val-every": 50,
+  "val-n": 256,
+  "real-ratio": 0.5,
+  "seed": 2047,
+  "real-npz": [
+   "data/real_photo_mix_clean_v60.npz",
+   "data/real_photo_v24_clean_v60.npz",
+   "data/real_photo_chessai_clean.npz",
+   "data/real_chessai_piece_clean.npz",
+   "data/real_rf_piece_hi_clean.npz",
+   "data/bench_hot_transplant.npz",
+   "data/bench_hot_transplant_v3.npz",
+   "data/empty_paste_v50.npz",
+   "data/real_photo_v47_clean.npz",
+   "data/real_rf_patch_transplant_v47_shard0.npz",
+   "data/real_rf_patch_transplant_v47_shard1.npz",
+   "data/real_rf_patch_dense_v58_shard0.npz"
+  ],
+  "early-stop-patience": 14,
+  "select": [
+   "gen-select",
+   "human-select",
+   "bench-select"
+  ],
+  "xattn": true,
+  "xattn-lr-mult": 10.0
+ },
+ "gates": [
+  {
+   "metric": "human26v2_human_best.total.err",
+   "op": "<=",
+   "value": 11,
+   "note": "不退铁律（vs r3_w085=11）；≤9 = D3 主假设成立"
+  },
+  {
+   "metric": "human26v2_human_best.total.err",
+   "op": "<=",
+   "value": 16,
+   "note": "防崩门（六轮带内上限；与上行并用=≤11 过/12~16 部分成功带/>16 FAIL）"
+  },
+  {
+   "metric": "human26v2_human_best.real17.err",
+   "op": "<=",
+   "value": 13,
+   "note": "防崩门（六轮期望 13.3）"
+  },
+  {
+   "metric": "human26v2_deploy.total.err",
+   "op": "<=",
+   "value": 11,
+   "note": "deploy rank 融合同判不退"
+  },
+  {
+   "metric": "human26_human_best.total.err",
+   "op": "<=",
+   "value": 34,
+   "note": "v1 口径防崩（六轮期望 34.5）"
+  },
+  {
+   "metric": "gen_human_fp32.style.occ",
+   "op": ">=",
+   "value": 0.849,
+   "note": "六轮均值 -0.5pt 带"
+  },
+  {
+   "metric": "gen_human_fp32.piece.occ",
+   "op": ">=",
+   "value": 0.849,
+   "note": "六轮均值 -0.5pt"
+  },
+  {
+   "metric": "gen_human_fp32.angle.occ",
+   "op": ">=",
+   "value": 0.859,
+   "note": "六轮均值 -0.5pt"
+  },
+  {
+   "metric": "gen_human_fp32.roboflow.occ",
+   "op": ">=",
+   "value": 0.755,
+   "note": "六轮均值 -0.5pt"
+  },
+  {
+   "metric": "bench_bench_best.full",
+   "op": ">=",
+   "value": 7,
+   "note": "v49 恢复带"
+  },
+  {
+   "metric": "bench.full",
+   "op": ">=",
+   "value": 7,
+   "note": "六轮带内"
+  },
+  {
+   "metric": "bench_int8.full",
+   "op": ">=",
+   "value": 0,
+   "note": "【已降级】恒过观测（int8 暂缓）"
+  },
+  {
+   "metric": "bench_int8_hb.full",
+   "op": ">=",
+   "value": 0,
+   "note": "【已降级】恒过观测"
+  }
+ ],
+ "baseline": {
+  "note": "v60 基线 delta 惯例；架构锚=r3_w085（v2=11/四轴 0.8576/0.8613/0.8665/0.7642）。另设人工门：11 错格专项 ≥2（.cache/r3_11errors.json 重放）+跨域敏感度曲线机制判据。",
+  "path": "runs/v60/auto_summary.json"
+ }
+}

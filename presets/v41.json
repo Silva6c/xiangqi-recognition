@@ -1,0 +1,47 @@
+{
+  "name": "v41",
+  "note": "格条件类平衡轮：侦察破案——模型在每格内拟合多数类（(9,7)=R 渲染域 acc 仅 11.5% vs (9,8)=R 83.8%，同车不同命），bench 顽固 R→N 与 .→R 幻视同源。主变量=格条件类平衡损失（w=clip(√(全局/格内频率),1,6) 加权 CE，自动覆盖全部 90 格的类失衡）；辅助=温和靶向 (9,7)=R 5.2%→7.3%（匹配真实锚点 9.1%，20% 翻转已被真实先验否决）。数据池与 v40 一致。微观判据=渲染域 (9,7)=R acc 0.115→≥0.6。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "attn": true,
+    "aux-head": true,
+    "aux-weight": 0.4,
+    "attn-lr-mult": 10,
+    "cell-balance": true,
+    "cell-freq": "data/cell_class_freq.npz",
+    "init-from": "runs/v40/gen_best.pt",
+    "lr": 5e-5,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 4,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2026,
+    "real-npz": [
+      "data/real_photo_mix.npz",
+      "data/real_photo_recover45.npz",
+      "data/real_photo_v24.npz",
+      "data/real_photo_chessai.npz",
+      "data/real_chessai_piece.npz",
+      "data/real_rf_piece_hi.npz",
+      "data/bench_hot_transplant.npz"
+    ],
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "gen.style.occ",   "op": ">=", "value": 0.821, "note": "v40 0.8257 -0.5pt 容差" },
+    { "metric": "gen.piece.occ",   "op": ">=", "value": 0.805, "note": "v40 0.8095 -0.5pt；(9,7) 系修正预期溢出上涨" },
+    { "metric": "gen.angle.occ",   "op": ">=", "value": 0.816, "note": "v40 0.8209 -0.5pt" },
+    { "metric": "gen.roboflow.occ", "op": ">=", "value": 0.700, "note": "v40 0.7048 -0.5pt" },
+    { "metric": "human26.total.err", "op": "<=", "value": 45, "note": "v40 45 不退" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 41, "note": "v40 41 不退" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 8, "note": "第三冲刺：类平衡直击 (9,7) R→N 与 (9,8) .→R" },
+    { "metric": "bench.full",      "op": ">=", "value": 6,    "note": "v40 6 不退" }
+  ],
+  "baseline": {
+    "note": "v40 双口径基线（类平衡轮 delta 基准）。",
+    "path": "runs/v40/auto_summary.json"
+  }
+}

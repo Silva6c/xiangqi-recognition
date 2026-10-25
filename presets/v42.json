@@ -1,0 +1,48 @@
+{
+  "name": "v42",
+  "note": "真实域真监督轮：roboflow COCO 人工标注帧 2319 帧入池（parse_roboflow_coco.py 管线：角点对齐+框-格映射+结构校验，标签完全独立于 nano——蒸馏天花板首次被真监督绕开）+ v41 七池。init-from v41/gen_best 全键。主变量=新真实域监督数据。核心靶区=26 帧实物域（v41 24 错 vs nano 3）。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "attn": true,
+    "aux-head": true,
+    "aux-weight": 0.4,
+    "attn-lr-mult": 10,
+    "cell-balance": true,
+    "cell-freq": "data/cell_class_freq.npz",
+    "init-from": "runs/v41/gen_best.pt",
+    "lr": 5e-5,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 4,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2026,
+    "real-npz": [
+      "data/real_photo_mix.npz",
+      "data/real_photo_recover45.npz",
+      "data/real_photo_v24.npz",
+      "data/real_photo_chessai.npz",
+      "data/real_chessai_piece.npz",
+      "data/real_rf_piece_hi.npz",
+      "data/bench_hot_transplant.npz",
+      "data/real_roboflow_sup.npz"
+    ],
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "gen.style.occ",   "op": ">=", "value": 0.829, "note": "v41 0.8342 -0.5pt 容差" },
+    { "metric": "gen.piece.occ",   "op": ">=", "value": 0.826, "note": "v41 0.8310 -0.5pt" },
+    { "metric": "gen.angle.occ",   "op": ">=", "value": 0.835, "note": "v41 0.8396 -0.5pt" },
+    { "metric": "gen.roboflow.occ", "op": ">=", "value": 0.725, "note": "v41 0.7302 -0.5pt" },
+    { "metric": "human26.total.err", "op": "<=", "value": 42, "note": "v41 42 守住" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 39, "note": "v41 39 守住" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 8, "note": "v41 8 守住" },
+    { "metric": "bench.full",      "op": ">=", "value": 6,    "note": "v41 6 守住" }
+  ],
+  "baseline": {
+    "note": "v41 双口径基线（真监督轮 delta 基准）。",
+    "path": "runs/v41/auto_summary.json"
+  }
+}

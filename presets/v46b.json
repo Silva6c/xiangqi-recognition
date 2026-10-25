@@ -1,0 +1,55 @@
+{
+  "name": "v46b",
+  "note": "v46b 同域消融轮（docs/v46b方案-同域消融轮-20261018.md）：v46 负结果的对照修正——池列表/init-from/seed 与 v46 完全一致（十池含 bench_v2 2164），唯一数据变量=transplant shard 贴片来源 46% 异域（zfk/efbok 库 55314）→ 0%（同域库 29928，新 tag real_rf_patch_transplant_v45 避免覆盖）；BASE_SEED 恒定使 shard 底帧/贴格同布局=纯成分消融。gates 按 v45 实绩设（v46 是退步轮），delta 列对 v46 看恢复幅度。预期解读表见方案 §五。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "attn": true,
+    "aux-head": true,
+    "aux-weight": 0.4,
+    "attn-lr-mult": 10,
+    "cell-balance": true,
+    "cell-freq": "data/cell_class_freq.npz",
+    "init-from": "runs/v45/gen_best.pt",
+    "lr": 5e-5,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 4,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2031,
+    "real-npz": [
+      "data/real_photo_mix.npz",
+      "data/real_photo_recover45.npz",
+      "data/real_photo_v24.npz",
+      "data/real_photo_chessai.npz",
+      "data/real_chessai_piece.npz",
+      "data/real_rf_piece_hi.npz",
+      "data/bench_hot_transplant.npz",
+      "data/bench_hot_transplant_v2.npz",
+      "data/real_rf_patch_transplant_v45_shard0.npz",
+      "data/real_rf_patch_transplant_v45_shard1.npz"
+    ],
+    "early-stop-patience": 10,
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "human26.real17.err", "op": "<=", "value": 21, "note": "恢复判据：实物域回到 v45 水平 21（v46 25 异域稀释退步）——同域消融的核心验证点" },
+    { "metric": "human26_human_best.real17.err", "op": "<=", "value": 18, "note": "human_best 口径 v45 实绩 18 历史新低不退（部署口径主判据）" },
+    { "metric": "gen.style.occ",   "op": ">=", "value": 0.838, "note": "v45 0.8428 -0.5pt 防守" },
+    { "metric": "gen.piece.occ",   "op": ">=", "value": 0.838, "note": "v45 0.8426 -0.5pt 防守" },
+    { "metric": "gen.angle.occ",   "op": ">=", "value": 0.852, "note": "v45 0.8572 -0.5pt 防守" },
+    { "metric": "gen.roboflow.occ", "op": ">=", "value": 0.745, "note": "v45 0.7504 -0.5pt 防守" },
+    { "metric": "human26.total.err", "op": "<=", "value": 41, "note": "v45 gen_best 41 不退" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 37, "note": "v45 human_best 37 不退" },
+    { "metric": "bench.full",      "op": ">=", "value": 7,    "note": "v45 gen_best 口径 7（稳定学会代理判据——v46 6 是选点/主口径分叉证据）" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 7, "note": "v45 bench_best 7 守住（v46 的 8 含 fp32 数值边界红利不设门，预期保持）" },
+    { "metric": "bench_int8.full", "op": ">=", "value": 6, "note": "int8 门 ≥6（v46 崩到 4——部署口径必须恢复 v45 水平，这道门拦过灾难）" },
+    { "metric": "bench_int8_hb.full", "op": ">=", "value": 6, "note": "human_best 部署口径 int8 门 ≥6（v46 崩到 2）" }
+  ],
+  "baseline": {
+    "note": "v46 基线（delta 列显示消融恢复幅度；gates 判据基于 v45 实绩）。",
+    "path": "runs/v46/auto_summary.json"
+  }
+}

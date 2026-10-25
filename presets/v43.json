@@ -1,0 +1,52 @@
+{
+  "name": "v43",
+  "note": "实物贴片轮（v42 整帧真监督证伪后的路线修正）：贴片只依赖框内图像+类别（COCO 保证，对漏标免疫），位置语义由渲染端标准格位成立（几何一致性天然满足），实物质感直接进渲染域训练分布——正打实物域 8 倍差距（v41 24 错 vs nano 3 错）。数据池=v41 七池+real_rf_patch_transplant 贴片池（机剔 30% 毒帧源后建库，nano QC 双门），不含 roboflow_sup 整帧（32.7% 格不一致、零干净帧）。三层防越训越差：数据治本（机剔+几何一致）/ train --early-stop-patience 10 机制化早停（v42 实测损伤集中前 150 步、早停挽回 87%）/ human 选点健康监控（step 100 内崩溃见顶=贴片仍含毒的红色警报，人工介入）。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "attn": true,
+    "aux-head": true,
+    "aux-weight": 0.4,
+    "attn-lr-mult": 10,
+    "cell-balance": true,
+    "cell-freq": "data/cell_class_freq.npz",
+    "init-from": "runs/v41/gen_best.pt",
+    "lr": 5e-5,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 4,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2026,
+    "real-npz": [
+      "data/real_photo_mix.npz",
+      "data/real_photo_recover45.npz",
+      "data/real_photo_v24.npz",
+      "data/real_photo_chessai.npz",
+      "data/real_chessai_piece.npz",
+      "data/real_rf_piece_hi.npz",
+      "data/bench_hot_transplant.npz",
+      "data/real_rf_patch_transplant_shard0.npz",
+      "data/real_rf_patch_transplant_shard1.npz"
+    ],
+    "early-stop-patience": 10,
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "human26.real17.err", "op": "<=", "value": 20, "note": "核心预注册：实物域 v41 24 错 → ≤20（贴片是间接增强，预期温和改善；≥24 即路线证伪）" },
+    { "metric": "human26_human_best.real17.err", "op": "<=", "value": 21, "note": "实物域 human_best 口径 v41 21 不退" },
+    { "metric": "gen.style.occ",   "op": ">=", "value": 0.829, "note": "v41 0.8342 -0.5pt 防守" },
+    { "metric": "gen.piece.occ",   "op": ">=", "value": 0.826, "note": "v41 0.8310 -0.5pt 防守" },
+    { "metric": "gen.angle.occ",   "op": ">=", "value": 0.835, "note": "v41 0.8396 -0.5pt 防守" },
+    { "metric": "gen.roboflow.occ", "op": ">=", "value": 0.725, "note": "v41 0.7302 -0.5pt 防守" },
+    { "metric": "human26.total.err", "op": "<=", "value": 42, "note": "v41 42 不退" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 39, "note": "v41 39 不退" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 8, "note": "v41 8 守住" },
+    { "metric": "bench.full",      "op": ">=", "value": 6,    "note": "v41 6 守住" }
+  ],
+  "baseline": {
+    "note": "v41 双口径基线（贴片轮 delta 基准；v42 4/8 已裁决整帧路线死亡，不作基准）。",
+    "path": "runs/v41/auto_summary.json"
+  }
+}

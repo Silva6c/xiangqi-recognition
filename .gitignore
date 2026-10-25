@@ -1,0 +1,9 @@
+fonts/
+data/
+runs/
+.cache/
+__pycache__/
+*.pyc
+*.npz
+*.onnx
+*.pt

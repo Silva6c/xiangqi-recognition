@@ -1,0 +1,44 @@
+{
+  "name": "v35",
+  "note": "复刻 v35 已终判配方（docs/v35备战记录-20261007.md §四），供复跑/回归对照。新配方请新增独立 json 文件（如 v36.json），勿改此文件——presets 目录即配方库，pipeline 按 --preset 加载，代码零改动。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "lr": 5e-5,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 2,
+    "val-every": 25,
+    "real-ratio": 0.5,
+    "seed": 2026,
+    "real-npz": [
+      "data/real_photo_mix.npz",
+      "data/real_photo_recover45.npz",
+      "data/real_photo_v24.npz",
+      "data/real_photo_chessai.npz",
+      "data/real_chessai_piece.npz",
+      "data/real_rf_piece.npz",
+      "data/bench_hot_transplant.npz"
+    ],
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "net2net": {
+    "src": "runs/v34/gen_best.pt",
+    "note": "初始化来源：pipeline 预检时若 runs/<run>/net2net_init.pt 不存在则自动用 net2net_widen.py 从 src 扩宽生成（width/head-dim 取 train 段）。src 改为上代 gen_best.pt 即逐代滚动。"
+  },
+  "export": {
+    "calib-real": 0.5,
+    "note": "int8 从 gen_best.pt 导出（v35 实践口径）；fp32 三连从三个选点各导一份，pipeline 自动改名防覆盖。"
+  },
+  "gates": [
+    { "metric": "gen.style.occ",   "op": ">=", "value": 0.60, "note": "v35 实际 0.6075（v34 0.5835 +2.4pt）" },
+    { "metric": "gen.piece.occ",   "op": ">=", "value": 0.58, "note": "v35 实际 0.5897" },
+    { "metric": "gen.angle.occ",   "op": ">=", "value": 0.52, "note": "v35 实际 0.5269（R4 最难档）" },
+    { "metric": "human26.total.err", "op": "<=", "value": 60,  "note": "v35 实际 56 错（历史新低）" },
+    { "metric": "bench.full",      "op": ">=", "value": 4,    "note": "v35 实际 5/10" }
+  ],
+  "baseline": {
+    "note": "对拍基准：--baseline 传上轮 auto_summary.json（如 runs/v35/auto_summary.json）；本 preset 首建时 v35 无该文件，delta 列留空即为正常。",
+    "path": ""
+  }
+}

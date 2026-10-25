@@ -1,0 +1,58 @@
+{
+  "name": "v55",
+  "note": "v55 钉子户考古+渲染光度弹药轮（三子代理研究定案）：六轮钉子户考古锁定 17 格稳定错格（字形混淆 8+幻视 7+漏检 2，deploy 口径同集合=排除选点问题、瓶颈在训练分布）。红队+目检实证渲染域两个光度维度为零：①棋子投影 shadow 0 次②棋盘级光照不均（photometric 纯全局 LUT 无空间项）——幻视 7 格全是渲染域罕见现象（背景红字入镜/纯黑格/格心十字线纹理）、漏检 2 格是暗背景融入。五弹药：棋子投影 p0.65（单光源反侧落影）+棋盘级暗角 p0.35/单侧渐变 p0.30+watermark 扩档（小字号档/±28° 旋转/alpha 180/亮红）+格心十字定位线盘式 p0.14+随机板式暗盘分支 p0.15(v0.14-0.32)。内存修复：train.py real 池双份驻留（NHWC ri 存活+transpose 副本=12 池 20.3GB，watchdog 连爆最大单项）改逐池 NCHW 即弃——12 池全量回归（v50 clean 版，v54 被迫砍到 8 池的域损失恢复）+workers 2（用户授权时间换内存）+patience 10→14（早停窗口推到 v49 甜点步数 900 附近，v52/v54 十周期平台早停教训）。stat_cell_freq 已随渲染改动重跑（train.py:358 契约）。判据锚六轮实绩：real17 v2 期望 13.3（11,13,12,16,15,13）主判据 ≤11；四轴挂六轮均值-0.5pt。超越判定仍留 gold68_v2（42 帧共识帧人工修正后）——本轮不改部署基座（v49/human_best 冻结）。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "attn": true,
+    "aux-head": true,
+    "aux-weight": 0.4,
+    "attn-lr-mult": 10,
+    "cell-balance": true,
+    "cell-freq": "data/cell_class_freq.npz",
+    "init-from": "runs/v49/human_best.pt",
+    "lr": 5e-05,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 2,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2040,
+    "real-npz": [
+      "data/real_photo_mix_clean.npz",
+      "data/real_photo_v24_clean.npz",
+      "data/real_photo_chessai_clean.npz",
+      "data/real_chessai_piece_clean.npz",
+      "data/real_rf_piece_hi_clean.npz",
+      "data/bench_hot_transplant.npz",
+      "data/bench_hot_transplant_v3.npz",
+      "data/bench_hot_transplant_v3.npz",
+      "data/empty_paste_v50.npz",
+      "data/real_photo_v47_clean.npz",
+      "data/real_rf_patch_transplant_v47_shard0.npz",
+      "data/real_rf_patch_transplant_v47_shard1.npz"
+    ],
+    "early-stop-patience": 14,
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "human26v2_human_best.real17.err", "op": "<=", "value": 11, "note": "主判据：六轮期望 13.3（11,13,12,16,15,13），-2.3=弹药直打实物域光度/纹理幻视+漏检的效果线；≥12=部分有效不显著，≥14=弹药证伪" },
+    { "metric": "human26v2_human_best.app9.err", "op": "<=", "value": 6, "note": "哨兵：六轮期望 4.2（3-5 带），+2 容差" },
+    { "metric": "human26v2_human_best.total.err", "op": "<=", "value": 15, "note": "六轮期望 17.5（15,16,16,21,19,18），-2.5" },
+    { "metric": "human26v2_deploy.total.err", "op": "<=", "value": 15, "note": "deploy 复选同判" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 34, "note": "v1 口径六轮期望 34.5（32-38 带内），观测降权" },
+    { "metric": "gen_human_fp32.style.occ", "op": ">=", "value": 0.85, "note": "六轮均值 0.8549 -0.5pt" },
+    { "metric": "gen_human_fp32.piece.occ", "op": ">=", "value": 0.85, "note": "六轮均值 0.8550 -0.5pt" },
+    { "metric": "gen_human_fp32.angle.occ", "op": ">=", "value": 0.86, "note": "六轮均值 0.8652 -0.5pt" },
+    { "metric": "gen_human_fp32.roboflow.occ", "op": ">=", "value": 0.755, "note": "六轮均值 0.7605 -0.5pt" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 8, "note": "六轮 9,10,9,9,9,8 期望 9，容差 1" },
+    { "metric": "bench.full", "op": ">=", "value": 6, "note": "gen 口径六轮 7,7,7,8,5,7，锚 6" },
+    { "metric": "bench_int8.full", "op": ">=", "value": 0, "note": "【已降级】恒过观测" },
+    { "metric": "bench_int8_hb.full", "op": ">=", "value": 0, "note": "【已降级】恒过观测" }
+  ],
+  "baseline": {
+    "note": "v54 基线（delta 惯例；弹药效果检验对照=runs/v49-v54 六轮钉子户清单 .cache/v55_study/钉子户考古.md）。",
+    "path": "runs/v54/auto_summary.json"
+  }
+}

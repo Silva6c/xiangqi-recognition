@@ -1,0 +1,57 @@
+{
+  "name": "v57",
+  "note": "v57 最强模型冲刺轮（用户指令：不执着 int8，研究下一代成为我们训练出的最强模型）：起点=hb_w08 插值完点（26 帧 v1 28/v2 11/real17 8/App9 3 四项历史新低+四轴 0.8575/0.8602/0.8658/0.7636 全面超 v49/w040/v55）。v55/v56 正反实锤单轮跷跷板→v57 策略=从最强插值点 init+新弹药直打剩余钉子户+训后第三轮插值组合两端进步。三新弹药（renderer）：①巨字红字入镜档（watermark 字号三档制新增 h//4~h//3 巨字/alpha 130-200/红黑实色——钉子户考古 f16 红字'街'入镜幻视 2 格对症，v55 幻视簇唯二未翻正）②黑子暗面档（黑子 face 压暗 35~55% p0.12——(15,2,8) b 六轮漏检对症：暗背景黑子对比度过低）③盘边阴影带（贴片边缘 12~32px 暗带 p0.08 带矩形入 occluders 防错标——(05,3,8) C 六轮漏检对症：棋子骑格心+边缘黑边切边）。字体池盘点：55 款已含圆体美术字（站酷快乐/粉圆/huninn），N↔R 残余非字体缺失不加字体。cell_freq 随渲染改动重跑（v56bak 备份）。配方：12 池 clean+workers2+total-samples 150000+patience14+seed 2042。判据双锚 hb_w08 不退（v2≤11/real17≤8/v1≤28/四轴≥hb_w08-0.1pt）+stretch（real17≤6/angle≥0.87）；预期训练期跷跷板可接受，终局以第三轮插值（hb_w08×v57端点）的组合完点为准。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "attn": true,
+    "aux-head": true,
+    "aux-weight": 0.4,
+    "attn-lr-mult": 10,
+    "cell-balance": true,
+    "cell-freq": "data/cell_class_freq.npz",
+    "init-from": "runs/v57_init_hbw08.pt",
+    "lr": 5e-05,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 2,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2042,
+    "real-npz": [
+      "data/real_photo_mix_clean.npz",
+      "data/real_photo_v24_clean.npz",
+      "data/real_photo_chessai_clean.npz",
+      "data/real_chessai_piece_clean.npz",
+      "data/real_rf_piece_hi_clean.npz",
+      "data/bench_hot_transplant.npz",
+      "data/bench_hot_transplant_v3.npz",
+      "data/bench_hot_transplant_v3.npz",
+      "data/empty_paste_v50.npz",
+      "data/real_photo_v47_clean.npz",
+      "data/real_rf_patch_transplant_v47_shard0.npz",
+      "data/real_rf_patch_transplant_v47_shard1.npz"
+    ],
+    "early-stop-patience": 14,
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "human26v2_human_best.total.err", "op": "<=", "value": 11, "note": "hb_w08 实绩 11（不退铁律锚）" },
+    { "metric": "human26v2_human_best.real17.err", "op": "<=", "value": 8, "note": "hb_w08 实绩 8；stretch ≤6（新弹药直打漏检/幻视残余）" },
+    { "metric": "human26v2_deploy.total.err", "op": "<=", "value": 11, "note": "deploy rank 融合同判" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 28, "note": "hb_w08 实绩 28" },
+    { "metric": "gen_human_fp32.style.occ", "op": ">=", "value": 0.8565, "note": "hb_w08 0.8575 -0.1pt" },
+    { "metric": "gen_human_fp32.piece.occ", "op": ">=", "value": 0.8592, "note": "hb_w08 0.8602 -0.1pt" },
+    { "metric": "gen_human_fp32.angle.occ", "op": ">=", "value": 0.8648, "note": "hb_w08 0.8658 -0.1pt（stretch 0.87=v56 动力学可达）" },
+    { "metric": "gen_human_fp32.roboflow.occ", "op": ">=", "value": 0.7626, "note": "hb_w08 0.7636 -0.1pt" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 9, "note": "v56 满分/v49 9 恢复带" },
+    { "metric": "bench.full", "op": ">=", "value": 7, "note": "hb_w08/v49 持平 7" },
+    { "metric": "bench_int8.full", "op": ">=", "value": 0, "note": "【已降级】恒过观测（int8 下一轮专攻，用户拍板不执着）" },
+    { "metric": "bench_int8_hb.full", "op": ">=", "value": 0, "note": "【已降级】恒过观测" }
+  ],
+  "baseline": {
+    "note": "v56 基线（delta 惯例；双优对账锚=docs/v57方案 hb_w08 实绩表）。",
+    "path": "runs/v56/auto_summary.json"
+  }
+}

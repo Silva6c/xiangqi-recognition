@@ -1,0 +1,115 @@
+{
+ "name": "v52",
+ "note": "v52 可复现性检验守成轮（v50/v51 两连败后的换道）：v49 流程完整复刻——init-from v48/human_best（同 v49）、v49 原 12 池原配方（含 recover45/未清洗池/empty_paste_v49 8000 帧 hot0.7）、seed 2033→2037。检验命题：v49 的 v1 32/v2 15 是配方可复现还是选点红利（红队警告）。该方向 v45-v49 五连成功、FAIL 风险极低；gates 松锚（v49 实绩+1 容差）——PASS=复现成立权威可信，FAIL=v49 数字下修。评测三口径：v1 26/v2 26/gold 68 帧（26 v2 帧+42 帧双模型双高共识帧，共识集=模型间一致性裁判非人工真值）。部署基座维持 v49/hb 不因本轮变动。",
+ "train": {
+  "width": "256,384,640,896",
+  "head-dim": 256,
+  "attn": true,
+  "aux-head": true,
+  "aux-weight": 0.4,
+  "attn-lr-mult": 10,
+  "cell-balance": true,
+  "cell-freq": "data/cell_class_freq.npz",
+  "init-from": "runs/v48/human_best.pt",
+  "lr": 5e-05,
+  "total-samples": 150000,
+  "batch": 48,
+  "workers": 4,
+  "val-every": 50,
+  "val-n": 256,
+  "real-ratio": 0.5,
+  "seed": 2037,
+  "real-npz": [
+   "data/real_photo_mix.npz",
+   "data/real_photo_recover45.npz",
+   "data/real_photo_v24.npz",
+   "data/real_photo_chessai.npz",
+   "data/real_chessai_piece.npz",
+   "data/real_rf_piece_hi.npz",
+   "data/bench_hot_transplant.npz",
+   "data/bench_hot_transplant_v3.npz",
+   "data/empty_paste_v49.npz",
+   "data/real_photo_v47.npz",
+   "data/real_rf_patch_transplant_v47_shard0.npz",
+   "data/real_rf_patch_transplant_v47_shard1.npz"
+  ],
+  "early-stop-patience": 10,
+  "select": [
+   "gen-select",
+   "human-select",
+   "bench-select"
+  ]
+ },
+ "gates": [
+  {
+   "metric": "human26_human_best.total.err",
+   "op": "<=",
+   "value": 33,
+   "note": "松锚=v49 32+1（复现检验：≤32 完全复现，33 选点噪声带内）"
+  },
+  {
+   "metric": "human26v2_human_best.total.err",
+   "op": "<=",
+   "value": 16,
+   "note": "松锚=v49 15+1"
+  },
+  {
+   "metric": "human26_human_best.real17.err",
+   "op": "<=",
+   "value": 15,
+   "note": "松锚=v49 14+1"
+  },
+  {
+   "metric": "gen_human_fp32.style.occ",
+   "op": ">=",
+   "value": 0.848,
+   "note": "v49 0.8531 -0.5pt"
+  },
+  {
+   "metric": "gen_human_fp32.piece.occ",
+   "op": ">=",
+   "value": 0.849,
+   "note": "v49 0.8541 -0.5pt"
+  },
+  {
+   "metric": "gen_human_fp32.angle.occ",
+   "op": ">=",
+   "value": 0.858,
+   "note": "v49 0.8626 -0.5pt"
+  },
+  {
+   "metric": "gen_human_fp32.roboflow.occ",
+   "op": ">=",
+   "value": 0.752,
+   "note": "v49 0.7565 -0.5pt"
+  },
+  {
+   "metric": "bench.full",
+   "op": ">=",
+   "value": 7,
+   "note": "v49 9 容差 2（复刻检验非竞赛）"
+  },
+  {
+   "metric": "bench_bench_best.full",
+   "op": ">=",
+   "value": 9,
+   "note": "v50/v51 已证 9-10 可达"
+  },
+  {
+   "metric": "bench_int8.full",
+   "op": ">=",
+   "value": 0,
+   "note": "【已降级】恒过观测"
+  },
+  {
+   "metric": "bench_int8_hb.full",
+   "op": ">=",
+   "value": 0,
+   "note": "【已降级】恒过观测"
+  }
+ ],
+ "baseline": {
+  "note": "v51 基线（delta 惯例；复现检验对照=runs/v49）。",
+  "path": "runs/v51/auto_summary.json"
+ }
+}

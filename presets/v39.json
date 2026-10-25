@@ -1,0 +1,45 @@
+{
+  "name": "v39",
+  "note": "数据轮：PATCH 56 hi 池（real_rf_piece_hi 71155 枚 56px 贴片，5200 帧重贴）+ renderer 三修（绿描边变体 RIM_ALT 12%/灰面板遮挡 30%/红马弱靶向 2.4%）——App 域解剖三簇修复的落地方。init-from v38a/gen_best（attn 全键 79/79 加载，架构不再从零学）。数据池仅 real_rf_piece→hi 一处变化，其余与 v38a 一致（归因干净）。判据=v38a 水位不退 + 真实域延续。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "attn": true,
+    "aux-head": true,
+    "aux-weight": 0.4,
+    "attn-lr-mult": 10,
+    "init-from": "runs/v38a/gen_best.pt",
+    "lr": 5e-5,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 4,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2026,
+    "real-npz": [
+      "data/real_photo_mix.npz",
+      "data/real_photo_recover45.npz",
+      "data/real_photo_v24.npz",
+      "data/real_photo_chessai.npz",
+      "data/real_chessai_piece.npz",
+      "data/real_rf_piece_hi.npz",
+      "data/bench_hot_transplant.npz"
+    ],
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "gen.style.occ",   "op": ">=", "value": 0.770, "note": "v38a 0.7759 -0.5pt 容差（已反超 nano 0.7689）" },
+    { "metric": "gen.piece.occ",   "op": ">=", "value": 0.743, "note": "v38a 0.7483 -0.5pt" },
+    { "metric": "gen.angle.occ",   "op": ">=", "value": 0.753, "note": "v38a 0.7583 -0.5pt" },
+    { "metric": "gen.roboflow.occ", "op": ">=", "value": 0.656, "note": "v38a 0.6610 -0.5pt；hi 池同构轴预期再涨" },
+    { "metric": "human26.total.err", "op": "<=", "value": 55, "note": "v38a 55 不退；hi 池+绿描边修复预期 App 域改善" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 53, "note": "v38a 53 不退" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 6, "note": "v38a 6 不退" },
+    { "metric": "bench.full",      "op": ">=", "value": 5,    "note": "v38a 5 不退" }
+  ],
+  "baseline": {
+    "note": "v38a 双口径基线（数据轮 delta 基准）。",
+    "path": "runs/v38a/auto_summary.json"
+  }
+}

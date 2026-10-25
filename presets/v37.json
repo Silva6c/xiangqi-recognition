@@ -1,0 +1,41 @@
+{
+  "name": "v37",
+  "note": "数据 A/B 轮：摘除 wave2（软贴片嫌疑，审计 §五）回到 v35 七池，验证真实域是否回血；同时启用快跑口径（val-every 50 + val-n 256，全程 ~40 分钟级，v37 起为默认）。init-from v36/gen_best 保住泛化新高再冲真实域。判据=v35 水位不退 + 真实域回血目标。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "init-from": "runs/v36/gen_best.pt",
+    "lr": 5e-5,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 2,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2026,
+    "real-npz": [
+      "data/real_photo_mix.npz",
+      "data/real_photo_recover45.npz",
+      "data/real_photo_v24.npz",
+      "data/real_photo_chessai.npz",
+      "data/real_chessai_piece.npz",
+      "data/real_rf_piece.npz",
+      "data/bench_hot_transplant.npz"
+    ],
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "gen.style.occ",   "op": ">=", "value": 0.635, "note": "v35 0.6347 不退（v36 新高 0.6503 允许回吐，摘 wave2 的代价上限）" },
+    { "metric": "gen.piece.occ",   "op": ">=", "value": 0.615, "note": "v35 0.6186 -0.4pt 容差" },
+    { "metric": "gen.angle.occ",   "op": ">=", "value": 0.605, "note": "v35 五档均值 0.6131 -0.8pt 容差" },
+    { "metric": "gen.roboflow.occ", "op": ">=", "value": 0.49, "note": "v35 0.4917：摘 wave2 后同构轴允许回落到 v35 水位，不许击穿" },
+    { "metric": "human26.total.err", "op": "<=", "value": 69,  "note": "核心回血指标①：v36 gen_best 71 → 应 ≤ v35 的 69" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 58, "note": "核心回血指标②：v36 human_best 65（v35 56）→ ≤58 即证实 wave2 归因" },
+    { "metric": "bench.full",      "op": ">=", "value": 2,    "note": "gen_best 口径 v35/v36 均 2，不退" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 4, "note": "核心回血指标③：v36 bench_best 2（v35 5）→ ≥4 即回血" }
+  ],
+  "baseline": {
+    "note": "v36 双口径基线（摘除 wave2 的 A/B 对照）。",
+    "path": "runs/v36/auto_summary.json"
+  }
+}

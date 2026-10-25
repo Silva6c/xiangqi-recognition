@@ -1,0 +1,44 @@
+{
+  "name": "v38b",
+  "note": "架构轮备案：全局拼接 + 特征图局部 conv（~0.3% 算力，导出零新算子）。触发条件=v38a 训练不稳或增益不显著。注意：全局向量无定向能力，预期 U 型零密度端（孤立子）收敛弱于 v38a——这正是 A/B 要分辨的。gates 同 v38a（待 v37 终判更新）。【实现待 v38a 判读后决定是否动工：先跑主案】",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "attn": false,
+    "aux-head": true,
+    "aux-weight": 0.4,
+    "attn-lr-mult": 10,
+    "init-from": "runs/v37/gen_best.pt",
+    "lr": 5e-5,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 4,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2026,
+    "real-npz": [
+      "data/real_photo_mix.npz",
+      "data/real_photo_recover45.npz",
+      "data/real_photo_v24.npz",
+      "data/real_photo_chessai.npz",
+      "data/real_chessai_piece.npz",
+      "data/real_rf_piece_hi.npz",
+      "data/bench_hot_transplant.npz"
+    ],
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "gen.style.occ",   "op": ">=", "value": 0.657, "note": "v37 0.6616 -0.5pt" },
+    { "metric": "gen.piece.occ",   "op": ">=", "value": 0.639, "note": "v37 0.6443 -0.5pt" },
+    { "metric": "gen.angle.occ",   "op": ">=", "value": 0.635, "note": "v37 0.6402 -0.5pt" },
+    { "metric": "gen.roboflow.occ", "op": ">=", "value": 0.533, "note": "v37 0.5385 -0.5pt" },
+    { "metric": "human26.total.err", "op": "<=", "value": 70, "note": "v37 70 不退" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 2, "note": "v37 2 不退" },
+    { "metric": "bench.full",      "op": ">=", "value": 2,    "note": "待 v37 终判后更新" }
+  ],
+  "baseline": {
+    "note": "v37 双口径基线。",
+    "path": "runs/v37/auto_summary.json"
+  }
+}

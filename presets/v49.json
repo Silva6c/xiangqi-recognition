@@ -1,0 +1,59 @@
+{
+  "name": "v49",
+  "note": "v49 剂量梯度钉因果+机制缺陷清算轮（docs/v49方案-剂量梯度钉因果与机制缺陷清算-20261019.md，三子代理研究含红队找茬 8 条）：B 线主变量=空格贴片剂量梯度——库端 QC 门 0.5→0.7 提质（剔灰带 506 片，库 24169 片）+ 贴入池 4000→8000 帧（渲染 seed 150_000 段防帧重复，热点比 0.7 不动）；预注册判定：real17 ≤14 剂量-响应成立（4000 帧 -2 → 8000 帧 -4 趋势）/ 15~16 游走嫌疑主变量证伪转 v50 蒸馏 / ≥17 伤源回滚——不破坏单变量纪律的消融等价实验。A 线=机制清算：deploy 复选重写（human26 主排序优先+gen 总错 tiebreak+崩盘兜底 400/200——v48 实证 gen_avg 盲幻视且容差预过滤清空候选集，双轮回验均选 step 150）+ 早停改 flag 块尾 break（末周期 gen 巡检/ckpt_val 补全）+ ckpt_val 无条件清理 + 报告 md5 同权重注记（v48 三口径同权重 6 行实为 2 份的教训）。init-from v48/human_best（部署候选项 b 默认；若用户拍板 a=v47/hb 改一行）。seed 2034。gates 14 项：剂量响应线 ≤15 + App 哨兵门 ≤21（红队 #6：30% 随机分量的 v47 式微伤监测）+ 四轴改挂 hb 口径（v48 hb 实绩 -0.5pt，含 angle -0.4pt 防守）+ bench ≥8 + deploy 新逻辑门 + int8 恒过观测。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "attn": true,
+    "aux-head": true,
+    "aux-weight": 0.4,
+    "attn-lr-mult": 10,
+    "cell-balance": true,
+    "cell-freq": "data/cell_class_freq.npz",
+    "init-from": "runs/v48/human_best.pt",
+    "lr": 5e-5,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 4,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2034,
+    "real-npz": [
+      "data/real_photo_mix.npz",
+      "data/real_photo_recover45.npz",
+      "data/real_photo_v24.npz",
+      "data/real_photo_chessai.npz",
+      "data/real_chessai_piece.npz",
+      "data/real_rf_piece_hi.npz",
+      "data/bench_hot_transplant.npz",
+      "data/bench_hot_transplant_v3.npz",
+      "data/empty_paste_v49.npz",
+      "data/real_photo_v47.npz",
+      "data/real_rf_patch_transplant_v47_shard0.npz",
+      "data/real_rf_patch_transplant_v47_shard1.npz"
+    ],
+    "early-stop-patience": 10,
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "human26_human_best.real17.err", "op": "<=", "value": 15, "note": "核心预注册：剂量响应可见线（v48 16，要求至少 -1；≤14 响应成立/15~16 证伪转蒸馏/≥17 回滚）" },
+    { "metric": "human26.real17.err", "op": "<=", "value": 15, "note": "同上 gen 口径（三口径同权重时与 hb 同值，报告有 md5 注记）" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 36, "note": "追平 v44 新低 36（红队勘误：v48 的 37 非新低）" },
+    { "metric": "human26.total.err", "op": "<=", "value": 37, "note": "v48 37 不退" },
+    { "metric": "human26_human_best.app9.err", "op": "<=", "value": 21, "note": "App 哨兵门（红队 #6）：30% 随机分量贴片的 v47 式微伤监测（v48 21）" },
+    { "metric": "gen_human_fp32.style.occ", "op": ">=", "value": 0.846, "note": "四轴改挂 hb 口径：v48 hb 0.8507 -0.5pt" },
+    { "metric": "gen_human_fp32.piece.occ", "op": ">=", "value": 0.848, "note": "v48 hb 0.8529 -0.5pt" },
+    { "metric": "gen_human_fp32.angle.occ", "op": ">=", "value": 0.854, "note": "v48 hb 0.8593 -0.5pt（红队点名 angle 回退防守）" },
+    { "metric": "gen_human_fp32.roboflow.occ", "op": ">=", "value": 0.754, "note": "v48 hb 0.7586 -0.5pt" },
+    { "metric": "bench.full", "op": ">=", "value": 8, "note": "v48 9/10 守住（容差 1）" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 8, "note": "v48 9/10 守住（容差 1）" },
+    { "metric": "human26_deploy.real17.err", "op": "<=", "value": 15, "note": "deploy 新逻辑门（复选重写后应与 hb 口径同值）" },
+    { "metric": "bench_int8.full", "op": ">=", "value": 0, "note": "【已降级】int8 参考指标（用户拍板 v47 起出门恒过，报告观测）" },
+    { "metric": "bench_int8_hb.full", "op": ">=", "value": 0, "note": "【已降级】int8_hb 参考指标（同上恒过）" }
+  ],
+  "baseline": {
+    "note": "v48 基线（红队勘误后口径，v49 delta 基准）。",
+    "path": "runs/v48/auto_summary.json"
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "name": "v50",
+  "note": "v50 数据大扫除+域补全轮（docs/v50方案-数据大扫除与域补全-20261019.md §七全量筛补记）：六项修复合订——①评测集 19 格标注修正落盘 eval_photo_human_v2.npz（格心级目检+程序 diff 验证；病灶=f19 习题图整行+f21 教学图，App 域标注事故）②训练池全量对拍 41096 帧后六池嫌疑格 8020 格 IGNORE（*_clean.npz；bench_hot_v1 基准 0.01% 证明嫌疑=真垃圾：'x' 背景标/漏标/颜色错类三病灶）③recover45 整池剔除（嫌疑 18.4%）④渲染蓝白教学主题（THEME_WEIGHTS 3，直打 v2 字形混淆 7 格的 App 画风域）+背景字增广（p0.25 低 alpha 中英水印，直打幻视 6 格中 4 格背景字）⑤bench 保卫=剂量 8000→6000+hot_ratio 0.7→0.5（v47 教过头教训同构回调）+bench_hot_v3 清单双写=零代码 2 倍权重⑥评测双轨制：eval_human26 --npz 跑 v2 主判据+train.py 选点保持 v1 不动。init-from v49/human_best（=deploy_best step900 三线新低权重），seed 2035。蒸馏死刑（nano 渲染域 argmax 判对率 0.0 实测）不入本轮。gates 14 项 v2 主判据（起点 15=real 11+App 4 vs nano 2）+v1 不退观测。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "attn": true,
+    "aux-head": true,
+    "aux-weight": 0.4,
+    "attn-lr-mult": 10,
+    "cell-balance": true,
+    "cell-freq": "data/cell_class_freq.npz",
+    "init-from": "runs/v49/human_best.pt",
+    "lr": 5e-5,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 4,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2035,
+    "real-npz": [
+      "data/real_photo_mix_clean.npz",
+      "data/real_photo_v24_clean.npz",
+      "data/real_photo_chessai_clean.npz",
+      "data/real_chessai_piece_clean.npz",
+      "data/real_rf_piece_hi_clean.npz",
+      "data/bench_hot_transplant.npz",
+      "data/bench_hot_transplant_v3.npz",
+      "data/bench_hot_transplant_v3.npz",
+      "data/empty_paste_v50.npz",
+      "data/real_photo_v47_clean.npz",
+      "data/real_rf_patch_transplant_v47_shard0.npz",
+      "data/real_rf_patch_transplant_v47_shard1.npz"
+    ],
+    "early-stop-patience": 10,
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "human26v2_human_best.real17.err", "op": "<=", "value": 8, "note": "v2 主判据：real 起点 11，蓝白主题+背景字+清洗后预期修 3-5" },
+    { "metric": "human26v2_human_best.app9.err", "op": "<=", "value": 3, "note": "v2 App 起点 4（蓝白主题直打 App 字形 3 格）" },
+    { "metric": "human26v2_human_best.total.err", "op": "<=", "value": 10, "note": "v2 起点 15（对照 nano v2=2——追平线留 v51 金标准扩容后判）" },
+    { "metric": "human26v2_deploy.total.err", "op": "<=", "value": 10, "note": "v2 deploy 复选同判" },
+    { "metric": "human26_human_best.real17.err", "op": "<=", "value": 14, "note": "v1 口径不退（v49 14）" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 32, "note": "v1 口径不退（v49 32）" },
+    { "metric": "human26_human_best.app9.err", "op": "<=", "value": 18, "note": "v1 口径不退（v49 18）" },
+    { "metric": "gen_human_fp32.style.occ", "op": ">=", "value": 0.848, "note": "v49 hb 0.8531 -0.5pt" },
+    { "metric": "gen_human_fp32.piece.occ", "op": ">=", "value": 0.849, "note": "v49 hb 0.8541 -0.5pt" },
+    { "metric": "gen_human_fp32.angle.occ", "op": ">=", "value": 0.858, "note": "v49 hb 0.8626 -0.5pt" },
+    { "metric": "gen_human_fp32.roboflow.occ", "op": ">=", "value": 0.752, "note": "v49 hb 0.7565 -0.5pt" },
+    { "metric": "bench.full", "op": ">=", "value": 8, "note": "bench 保卫目标（v49 7→回 8-9；剂量回调+v3 双写）" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 9, "note": "v49 9/10 不退" },
+    { "metric": "bench_int8.full", "op": ">=", "value": 0, "note": "【已降级】int8 参考指标（恒过观测）" },
+    { "metric": "bench_int8_hb.full", "op": ">=", "value": 0, "note": "【已降级】int8_hb 参考指标（恒过观测）" }
+  ],
+  "baseline": {
+    "note": "v49 基线（剂量-响应成立轮，v50 delta 基准）。",
+    "path": "runs/v49/auto_summary.json"
+  }
+}

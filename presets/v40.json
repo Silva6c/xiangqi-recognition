@@ -1,0 +1,45 @@
+{
+  "name": "v40",
+  "note": "底排右角定向数据轮：bench 4 帧残余 7 错全在 (9,7)/(9,8)（R→N 互认 + .→R 幻视，v18 老病灶最后堡垒）——V18_BIAS 靶向包升级：四组合（bench 现场 (9,7)=R&(9,8)=空 40% 权重/马车共存/马+空/车单独），该组合覆盖率 1.5%→6.3%（4 倍）。数据池与 v39 完全一致，唯一变量=靶向包（归因纯净）。init-from v39 全键加载。硬指标=bench_bench_best ≥8（4 帧残余应被吃掉大半）。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "attn": true,
+    "aux-head": true,
+    "aux-weight": 0.4,
+    "attn-lr-mult": 10,
+    "init-from": "runs/v39/gen_best.pt",
+    "lr": 5e-5,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 4,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2026,
+    "real-npz": [
+      "data/real_photo_mix.npz",
+      "data/real_photo_recover45.npz",
+      "data/real_photo_v24.npz",
+      "data/real_photo_chessai.npz",
+      "data/real_chessai_piece.npz",
+      "data/real_rf_piece_hi.npz",
+      "data/bench_hot_transplant.npz"
+    ],
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 8, "note": "硬指标：bench 4 帧残余全在靶向格，7→8+ 即靶向生效" },
+    { "metric": "gen.style.occ",   "op": ">=", "value": 0.789, "note": "v39 0.7943 -0.5pt 容差" },
+    { "metric": "gen.piece.occ",   "op": ">=", "value": 0.764, "note": "v39 0.7691 -0.5pt；靶向溢出预期再涨" },
+    { "metric": "gen.angle.occ",   "op": ">=", "value": 0.777, "note": "v39 0.7818 -0.5pt" },
+    { "metric": "gen.roboflow.occ", "op": ">=", "value": 0.673, "note": "v39 0.6776 -0.5pt" },
+    { "metric": "human26.total.err", "op": "<=", "value": 46, "note": "v39 46 不退" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 44, "note": "v39 44 不退" },
+    { "metric": "bench.full",      "op": ">=", "value": 6,    "note": "v39 6 不退" }
+  ],
+  "baseline": {
+    "note": "v39 双口径基线（靶向轮 delta 基准）。",
+    "path": "runs/v39/auto_summary.json"
+  }
+}

@@ -1,0 +1,139 @@
+{
+ "name": "v51",
+ "note": "v51 修提前停止+配方重放轮（docs/v51方案-修提前停止与配方重放-20261019.md）：v50 终判反思定案——bench 10/10 提前停止机制（v43 省时逻辑）在高起点 init-from 语境下截断 human26 改善期（v49 甜点 900 步 vs v50 被 350 打断、human_best 冻结 step50），6 门 FAIL 是机制 bug 的果、配方未证伪。本轮唯一变量=停止机制修复（满分不停止，early-stop-patience 唯一裁决），配方与 v50 完全一致（清洗六池+蓝白主题+背景字增广+剂量 6000/hot0.5+bench_hot_v3 双写）、seed 2035→2036、init-from 仍 v49/human_best。gates 不退锚挂 v49 数字（v50 已退，delta 列显示对 v50 恢复）。金标准候选帧筛选（real_photo_v47_clean 双高一致帧）并行工程供 v52。",
+ "train": {
+  "width": "256,384,640,896",
+  "head-dim": 256,
+  "attn": true,
+  "aux-head": true,
+  "aux-weight": 0.4,
+  "attn-lr-mult": 10,
+  "cell-balance": true,
+  "cell-freq": "data/cell_class_freq.npz",
+  "init-from": "runs/v49/human_best.pt",
+  "lr": 5e-05,
+  "total-samples": 150000,
+  "batch": 48,
+  "workers": 4,
+  "val-every": 50,
+  "val-n": 256,
+  "real-ratio": 0.5,
+  "seed": 2036,
+  "real-npz": [
+   "data/real_photo_mix_clean.npz",
+   "data/real_photo_v24_clean.npz",
+   "data/real_photo_chessai_clean.npz",
+   "data/real_chessai_piece_clean.npz",
+   "data/real_rf_piece_hi_clean.npz",
+   "data/bench_hot_transplant.npz",
+   "data/bench_hot_transplant_v3.npz",
+   "data/bench_hot_transplant_v3.npz",
+   "data/empty_paste_v50.npz",
+   "data/real_photo_v47_clean.npz",
+   "data/real_rf_patch_transplant_v47_shard0.npz",
+   "data/real_rf_patch_transplant_v47_shard1.npz"
+  ],
+  "early-stop-patience": 10,
+  "select": [
+   "gen-select",
+   "human-select",
+   "bench-select"
+  ]
+ },
+ "gates": [
+  {
+   "metric": "human26v2_human_best.total.err",
+   "op": "<=",
+   "value": 14,
+   "note": "不退锚=v49 的 15-1：修复截断后至少恢复+进步 1"
+  },
+  {
+   "metric": "human26v2_human_best.real17.err",
+   "op": "<=",
+   "value": 10,
+   "note": "v49 11-1（弹药+清洗真实效果的裁决线）"
+  },
+  {
+   "metric": "human26v2_human_best.app9.err",
+   "op": "<=",
+   "value": 3,
+   "note": "v50 已到 3（蓝白主题），保持"
+  },
+  {
+   "metric": "human26v2_deploy.total.err",
+   "op": "<=",
+   "value": 14,
+   "note": "deploy 复选同判"
+  },
+  {
+   "metric": "human26_human_best.real17.err",
+   "op": "<=",
+   "value": 14,
+   "note": "v1 口径不退（v49 14）"
+  },
+  {
+   "metric": "human26_human_best.total.err",
+   "op": "<=",
+   "value": 31,
+   "note": "v1 口径 v49 32-1"
+  },
+  {
+   "metric": "human26_human_best.app9.err",
+   "op": "<=",
+   "value": 17,
+   "note": "v1 口径 v49 18-1"
+  },
+  {
+   "metric": "gen_human_fp32.style.occ",
+   "op": ">=",
+   "value": 0.849,
+   "note": "v49 hb 0.8531 -0.5pt"
+  },
+  {
+   "metric": "gen_human_fp32.piece.occ",
+   "op": ">=",
+   "value": 0.85,
+   "note": "v49 hb 0.8541 -0.5pt"
+  },
+  {
+   "metric": "gen_human_fp32.angle.occ",
+   "op": ">=",
+   "value": 0.858,
+   "note": "v49 hb 0.8626 -0.5pt"
+  },
+  {
+   "metric": "gen_human_fp32.roboflow.occ",
+   "op": ">=",
+   "value": 0.752,
+   "note": "v49 hb 0.7565 -0.5pt"
+  },
+  {
+   "metric": "bench.full",
+   "op": ">=",
+   "value": 8,
+   "note": "bench 保卫（v50 gen 口径 7 持平 v49）"
+  },
+  {
+   "metric": "bench_bench_best.full",
+   "op": ">=",
+   "value": 9,
+   "note": "v50 已证 10/10 可达，门 9"
+  },
+  {
+   "metric": "bench_int8.full",
+   "op": ">=",
+   "value": 0,
+   "note": "【已降级】恒过观测"
+  },
+  {
+   "metric": "bench_int8_hb.full",
+   "op": ">=",
+   "value": 0,
+   "note": "【已降级】恒过观测"
+  }
+ ],
+ "baseline": {
+  "note": "v49 基线（剂量-响应成立轮，v50 delta 基准）。",
+  "path": "runs/v49/auto_summary.json"
+ }
+}

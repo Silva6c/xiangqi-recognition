@@ -1,0 +1,130 @@
+{
+ "name": "v60",
+ "note": "v60 软标签蒸馏轮（docs/v60蒸馏轮方案）：终局=纯自研单模型（APK 删 nano），级联是脚手架——用 nano 的知识不用它的权重。主变量唯一=软标签蒸馏损失（CE+λ·T²·KL，T=4/λ=0.3 按 1.2 抽检降档：rf 池 teacher 平坦一致率 0.65、empty 池 0.78<0.85 门）。B 臂主案 init v49/hb 干净基座（v56 弱端 init 成功模式；A 臂 hb_w08 备选 FAIL 再跑）。池口径 v60：mix/v24 换 _v60 版（leak_scan 全池终审剔除 10 帧评测帧 md5 全等泄漏——v1 评测集建池时代混入，方向上 r3 吃亏方历史对比不逆转，v60 起红线清净）+ 修正 v58 bench_hot_v1 双写手误为单写。seed 2044。TTA 路线已实证关闭（26 帧 11→16 新增错 8，v60 §1.1），蒸馏=唯一桥。预注册判据：v2 ≤11 不退+11 错格专项 ≥2 翻正（#2/#8/#11 字形簇）+防崩 ≤16+四轴 ≥0.849/0.849/0.859/0.755+bench ≥7。",
+ "train": {
+  "width": "256,384,640,896",
+  "head-dim": 256,
+  "attn": true,
+  "aux-head": true,
+  "aux-weight": 0.4,
+  "attn-lr-mult": 10,
+  "cell-balance": true,
+  "cell-freq": "data/cell_class_freq.npz",
+  "init-from": "runs/v49/human_best.pt",
+  "lr": 5e-05,
+  "total-samples": 150000,
+  "batch": 48,
+  "workers": 2,
+  "val-every": 50,
+  "val-n": 256,
+  "real-ratio": 0.5,
+  "seed": 2044,
+  "real-npz": [
+    "data/real_photo_mix_clean_v60.npz",
+    "data/real_photo_v24_clean_v60.npz",
+    "data/real_photo_chessai_clean.npz",
+    "data/real_chessai_piece_clean.npz",
+    "data/real_rf_piece_hi_clean.npz",
+    "data/bench_hot_transplant.npz",
+    "data/bench_hot_transplant_v3.npz",
+    "data/empty_paste_v50.npz",
+    "data/real_photo_v47_clean.npz",
+    "data/real_rf_patch_transplant_v47_shard0.npz",
+    "data/real_rf_patch_transplant_v47_shard1.npz",
+    "data/real_rf_patch_dense_v58_shard0.npz"
+  ],
+  "distill-soft": "data/distill_soft_real_photo_mix_clean_v60.npz,data/distill_soft_real_photo_v24_clean_v60.npz,data/distill_soft_real_photo_chessai_clean.npz,data/distill_soft_real_chessai_piece_clean.npz,data/distill_soft_real_rf_piece_hi_clean.npz,data/distill_soft_bench_hot_transplant.npz,data/distill_soft_bench_hot_transplant_v3.npz,data/distill_soft_empty_paste_v50.npz,data/distill_soft_real_photo_v47_clean.npz,data/distill_soft_real_rf_patch_transplant_v47_shard0.npz,data/distill_soft_real_rf_patch_transplant_v47_shard1.npz,data/distill_soft_real_rf_patch_dense_v58_shard0.npz",
+  "distill-T": 4.0,
+  "distill-lambda": 0.3,
+  "early-stop-patience": 14,
+  "select": [
+   "gen-select",
+   "human-select",
+   "bench-select"
+  ]
+ },
+ "gates": [
+  {
+   "metric": "human26v2_human_best.total.err",
+   "op": "<=",
+   "value": 11,
+   "note": "不退铁律（vs r3_w085=11）——蒸馏轮主判据"
+  },
+  {
+   "metric": "human26v2_human_best.total.err",
+   "op": "<=",
+   "value": 16,
+   "note": "防崩门（六轮带内上限；与上行并用=≤11 过/12~16 部分成功带/>16 FAIL）"
+  },
+  {
+   "metric": "human26v2_human_best.real17.err",
+   "op": "<=",
+   "value": 13,
+   "note": "防崩门（六轮期望 13.3）"
+  },
+  {
+   "metric": "human26v2_deploy.total.err",
+   "op": "<=",
+   "value": 11,
+   "note": "deploy rank 融合同判不退"
+  },
+  {
+   "metric": "human26_human_best.total.err",
+   "op": "<=",
+   "value": 34,
+   "note": "v1 口径防崩（六轮期望 34.5）"
+  },
+  {
+   "metric": "gen_human_fp32.style.occ",
+   "op": ">=",
+   "value": 0.849,
+   "note": "六轮均值 -0.5pt 带"
+  },
+  {
+   "metric": "gen_human_fp32.piece.occ",
+   "op": ">=",
+   "value": 0.849,
+   "note": "六轮均值 -0.5pt"
+  },
+  {
+   "metric": "gen_human_fp32.angle.occ",
+   "op": ">=",
+   "value": 0.859,
+   "note": "六轮均值 -0.5pt"
+  },
+  {
+   "metric": "gen_human_fp32.roboflow.occ",
+   "op": ">=",
+   "value": 0.755,
+   "note": "六轮均值 -0.5pt"
+  },
+  {
+   "metric": "bench_bench_best.full",
+   "op": ">=",
+   "value": 7,
+   "note": "v49 恢复带"
+  },
+  {
+   "metric": "bench.full",
+   "op": ">=",
+   "value": 7,
+   "note": "六轮带内"
+  },
+  {
+   "metric": "bench_int8.full",
+   "op": ">=",
+   "value": 0,
+   "note": "【已降级】恒过观测（int8 暂缓）"
+  },
+  {
+   "metric": "bench_int8_hb.full",
+   "op": ">=",
+   "value": 0,
+   "note": "【已降级】恒过观测"
+  }
+ ],
+ "baseline": {
+  "note": "v58 基线（delta 惯例；蒸馏锚=r3_w085 26 帧 11/四轴 0.8576/0.8613/0.8665/0.7642，见 docs/v59 文档）。另设人工专项门：11 错格翻正 ≥2（#2/#8/#11 字形簇优先）——训后 eval_cascade.py L0 重放核对，不进 gates 自动判。",
+  "path": "runs/v58/auto_summary.json"
+ }
+}

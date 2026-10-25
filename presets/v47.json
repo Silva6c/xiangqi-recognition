@@ -1,0 +1,57 @@
+{
+  "name": "v47",
+  "note": "v47 专业性能轮（docs/v47方案-专业性能轮-20261018.md，用户拍板 int8 出门）：双数据弹——A 线=空格反面证据泛化（erase_by_bg 跨域增广 7000 帧，直打实物 8 格幻视+bench (9,7) 同族——v46b 实锤反面证据是唯一有效机制，v1 正面证据 4 倍曝光无效）+ B 线=爬虫同域扩采（13 新词+跨 manifest 预注入去重 2344 指纹含 26 帧防泄漏闸+伪标签 board 0.5+换子自证 QC）；C 线=combo_shift v3 修正（方向反转 bug 修复后重生成替换 v2）。init-from v46b/gen_best（fp32 权威），seed 2032。gates 11 项按 v46b 实绩——int8 双门删除（用户拍板：nano 本身是 fp32 部署先例，int8 降参考，报告保留观测行）。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "attn": true,
+    "aux-head": true,
+    "aux-weight": 0.4,
+    "attn-lr-mult": 10,
+    "cell-balance": true,
+    "cell-freq": "data/cell_class_freq.npz",
+    "init-from": "runs/v46b/gen_best.pt",
+    "lr": 5e-5,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 4,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2032,
+    "real-npz": [
+      "data/real_photo_mix.npz",
+      "data/real_photo_recover45.npz",
+      "data/real_photo_v24.npz",
+      "data/real_photo_chessai.npz",
+      "data/real_chessai_piece.npz",
+      "data/real_rf_piece_hi.npz",
+      "data/bench_hot_transplant.npz",
+      "data/bench_hot_transplant_v3.npz",
+      "data/erase_aug_v47.npz",
+      "data/real_photo_v47.npz",
+      "data/real_rf_patch_transplant_v47_shard0.npz",
+      "data/real_rf_patch_transplant_v47_shard1.npz"
+    ],
+    "early-stop-patience": 10,
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "human26.real17.err", "op": "<=", "value": 16, "note": "核心预注册：实物域 v46b 18 → ≤16（反面证据泛化+爬虫扩采主目标；幻视 8 格是首靶）" },
+    { "metric": "human26_human_best.real17.err", "op": "<=", "value": 18, "note": "human_best 口径 v46b 实绩 18 不退（部署口径主判据）" },
+    { "metric": "gen.style.occ",   "op": ">=", "value": 0.840, "note": "v46b 0.8450 -0.5pt 防守" },
+    { "metric": "gen.piece.occ",   "op": ">=", "value": 0.840, "note": "v46b 0.8455 -0.5pt 防守" },
+    { "metric": "gen.angle.occ",   "op": ">=", "value": 0.849, "note": "v46b 0.8539 -0.5pt 防守" },
+    { "metric": "gen.roboflow.occ", "op": ">=", "value": 0.747, "note": "v46b 0.7519 -0.5pt 防守" },
+    { "metric": "human26.total.err", "op": "<=", "value": 39, "note": "v46b gen_best 39 历史新低不退" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 39, "note": "v46b human_best 39 不退" },
+    { "metric": "bench.full",      "op": ">=", "value": 7,    "note": "v46b gen_best 口径 7 不退（(9,7) 三格顽固是本轮反面证据泛化的 bench 侧目标）" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 7, "note": "v46b bench_best 7 不退（v46 的 8 确认为数值边界红利不设门）" },
+    { "metric": "bench_int8.full", "op": ">=", "value": 0, "note": "【已降级】int8 参考指标（用户拍板 v47 起 int8 出门：nano 本身是 fp32 部署先例，部署口径独立由部署轮承担；本门恒过，仅报告观测）" },
+    { "metric": "bench_int8_hb.full", "op": ">=", "value": 0, "note": "【已降级】int8_hb 参考指标（同上恒过，仅报告观测）" }
+  ],
+  "baseline": {
+    "note": "v46b 基线（fp32 权威，v47 delta 基准）。",
+    "path": "runs/v46b/auto_summary.json"
+  }
+}

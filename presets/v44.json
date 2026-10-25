@@ -1,0 +1,53 @@
+{
+  "name": "v44",
+  "note": "部署修复+实物扩量双线轮：A 线=int8 部署口径（QAT v43q/v43q2 独立权重 + 校准多源修复 + 自动报告补 int8 门——此前九轮被掩盖，v35 0/10 … v43 2/10）；B 线=实物域扩量（VN 三集 3.4 万框原图裁片 + VN 整帧 +111 帧，开局标准位换子自证 QC 89% 通过，贴片库预计 4045→3 万+；格级自证/早停/健康监控三层防退化全延续）。主变量=贴片库翻倍级扩容（VN 原图裁片解锁近景图——v44 parse 实证整帧管线吃不下 VN 特写图，只入池 +111 帧）。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "attn": true,
+    "aux-head": true,
+    "aux-weight": 0.4,
+    "attn-lr-mult": 10,
+    "cell-balance": true,
+    "cell-freq": "data/cell_class_freq.npz",
+    "init-from": "runs/v43/gen_best.pt",
+    "lr": 5e-5,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 4,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2029,
+    "real-npz": [
+      "data/real_photo_mix.npz",
+      "data/real_photo_recover45.npz",
+      "data/real_photo_v24.npz",
+      "data/real_photo_chessai.npz",
+      "data/real_chessai_piece.npz",
+      "data/real_rf_piece_hi.npz",
+      "data/bench_hot_transplant.npz",
+      "data/real_rf_patch_transplant_shard0.npz",
+      "data/real_rf_patch_transplant_shard1.npz"
+    ],
+    "early-stop-patience": 10,
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "human26.real17.err", "op": "<=", "value": 20, "note": "核心预注册：实物域 v43 22 → ≤20（贴片库翻倍扩容主目标；≥24 即证伪）" },
+    { "metric": "human26_human_best.real17.err", "op": "<=", "value": 21, "note": "实物域 human_best 口径 v41 21 水位防守" },
+    { "metric": "gen.style.occ",   "op": ">=", "value": 0.829, "note": "v43 0.8351 -0.5pt 防守" },
+    { "metric": "gen.piece.occ",   "op": ">=", "value": 0.826, "note": "v43 0.8339 -0.5pt 防守" },
+    { "metric": "gen.angle.occ",   "op": ">=", "value": 0.835, "note": "v43 0.8437 -0.5pt 防守" },
+    { "metric": "gen.roboflow.occ", "op": ">=", "value": 0.725, "note": "v43 0.7331 -0.5pt 防守" },
+    { "metric": "human26.total.err", "op": "<=", "value": 41, "note": "v43 41 不退" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 39, "note": "v43 39 不退" },
+    { "metric": "bench.full",      "op": ">=", "value": 7,    "note": "v43 7 不退" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 7, "note": "v43 7 守住" },
+    { "metric": "bench_int8.full", "op": ">=", "value": 4, "note": "部署口径门（v44 新增）：现役 int8 2、QAT 实验 4——真机跑的就是 int8，此门永久生效" }
+  ],
+  "baseline": {
+    "note": "v43 双口径基线（部署修复+实物扩量轮 delta 基准）。",
+    "path": "runs/v43/auto_summary.json"
+  }
+}

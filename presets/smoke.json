@@ -1,0 +1,23 @@
+{
+  "name": "smoke",
+  "note": "流水线冒烟测试配方（约 20~30 分钟）：纯合成迷你训练，验证 预检→watchdog→训练→fp32三连导出→int8→三把尺评测→自动报告 全链路。勿用于正式训练。",
+  "train": {
+    "width": "64,96,160,224",
+    "head-dim": 64,
+    "lr": 3e-3,
+    "total-samples": 200,
+    "batch": 16,
+    "workers": 2,
+    "val-every": 4,
+    "val-n": 64,
+    "real-ratio": 0.5,
+    "real-npz": [],
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "export": { "calib-real": 0.5 },
+  "gates": [
+    { "metric": "bench.full", "op": ">=", "value": 0, "note": "冒烟必过" },
+    { "metric": "gen.style.occ", "op": ">=", "value": 0, "note": "冒烟必过" }
+  ],
+  "baseline": { "note": "冒烟无基准，delta 列留空", "path": "" }
+}

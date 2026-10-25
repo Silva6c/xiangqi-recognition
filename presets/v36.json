@@ -1,0 +1,41 @@
+{
+  "name": "v36",
+  "note": "数据收尾轮（v35 同宽度+初始化续进）：字体池 37→60+（OFL 扩池+可变字重实例化，style 轴系统 8 体口径不变）、roboflow 第二波 +6000 帧（已验证贴片直贴）、角度 R3/R4 采样加权 15%→28%。预注册判据=v35 终判的不退线（期望 +1~3pt，delta 看 baseline 列）。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "init-from": "runs/v35/gen_best.pt",
+    "lr": 5e-5,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 2,
+    "val-every": 25,
+    "real-ratio": 0.5,
+    "seed": 2026,
+    "real-npz": [
+      "data/real_photo_mix.npz",
+      "data/real_photo_recover45.npz",
+      "data/real_photo_v24.npz",
+      "data/real_photo_chessai.npz",
+      "data/real_chessai_piece.npz",
+      "data/real_rf_piece.npz",
+      "data/real_rf_wave2.npz",
+      "data/bench_hot_transplant.npz"
+    ],
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "gen.style.occ",   "op": ">=", "value": 0.63, "note": "v35 gen_best 0.6347，不退线（style 轴系统 8 体口径未动，期望 0.65+）" },
+    { "metric": "gen.piece.occ",   "op": ">=", "value": 0.61, "note": "v35 gen_best 0.6186，不退线" },
+    { "metric": "gen.angle.occ",   "op": ">=", "value": 0.52, "note": "v35 gen_best 0.5269（R4 最弱档，角度加码后训练更难，允许持平）" },
+    { "metric": "gen.roboflow.occ", "op": ">=", "value": 0.50, "note": "v35 gen_best 0.4917，第二波同构帧预期推到 0.52+" },
+    { "metric": "human26.total.err", "op": "<=", "value": 68,  "note": "v35 gen_best 口径实测 69 错（注意：终判 56 是 human_best 口径），gen_best 不退线" },
+    { "metric": "bench.full",      "op": ">=", "value": 2,    "note": "v35 gen_best 口径实测 2/10（终判 5/10 是 bench_best 口径），不退线" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 58, "note": "v35 human_best 口径实测 56 错 occ 0.8994（=终判值），+2 容差不退线" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 4, "note": "v35 bench_best 口径实测 5/10（=终判值），允许 -1" }
+  ],
+  "baseline": {
+    "note": "v35 基线由 eval_gen/eval_human26/eval_bench 补测组装（runs/v35/auto_summary.json），报告出 delta 列。",
+    "path": "runs/v35/auto_summary.json"
+  }
+}

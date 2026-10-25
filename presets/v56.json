@@ -1,0 +1,57 @@
+{
+  "name": "v56",
+  "note": "v56 既要又要轮（用户指令：超过 v49 同样超过 nano+不能退步）：v55 跷跷板归因=选点退化而非弹药伤害（训练后段 850-1150 四轴 err 1433-1437 好于 human 选点 450 的 1533）。零训练权重插值实验（v49/hb × v55/hb 七点网格全口径评测，.cache/v56_study/）证明插值空间存在双优解——预注册规则（四轴≥v49-0.1pt 约束下 real17 最小）选出 w040=0.40×v49+0.60×v55：四轴 0.8543/0.8579/0.8622/0.7611（vs v49 两超两平/ vs v55 四项全超）、26 帧 v1 29/v2 12/real17 9（三项新低）、bench 7 持平 v49。本轮 init-from runs/v56_init_w040.pt（双优起点探索固化）+弹药不动（v55 五弹药）+12 池 clean+workers2+patience14+seed2041。机制升级=train.py deploy 复选键字典序→双尺 rank 融合（跷跷板轮不再退化为 human26 单口径选点，tie 归 human26+崩盘兜底保留）。判据双锚 w040 实绩不退（v2≤12/real17≤9/v1≤29/四轴≥w040-0.1pt）+bench_best≥8 恢复带。int8 注意：w040 fp32→int8（Percentile）bench 3/10 偏弱（MinMax 对照试验中），部署切换以 v56 训练产物 int8 重导为准、w040 仅作 fp32 层基座候选。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "attn": true,
+    "aux-head": true,
+    "aux-weight": 0.4,
+    "attn-lr-mult": 10,
+    "cell-balance": true,
+    "cell-freq": "data/cell_class_freq.npz",
+    "init-from": "runs/v56_init_w040.pt",
+    "lr": 5e-05,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 2,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2041,
+    "real-npz": [
+      "data/real_photo_mix_clean.npz",
+      "data/real_photo_v24_clean.npz",
+      "data/real_photo_chessai_clean.npz",
+      "data/real_chessai_piece_clean.npz",
+      "data/real_rf_piece_hi_clean.npz",
+      "data/bench_hot_transplant.npz",
+      "data/bench_hot_transplant_v3.npz",
+      "data/bench_hot_transplant_v3.npz",
+      "data/empty_paste_v50.npz",
+      "data/real_photo_v47_clean.npz",
+      "data/real_rf_patch_transplant_v47_shard0.npz",
+      "data/real_rf_patch_transplant_v47_shard1.npz"
+    ],
+    "early-stop-patience": 14,
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "human26v2_human_best.total.err", "op": "<=", "value": 12, "note": "w040 实绩 12（不退铁律锚）" },
+    { "metric": "human26v2_human_best.real17.err", "op": "<=", "value": 9, "note": "w040 实绩 9；stretch ≤7（向 nano）" },
+    { "metric": "human26v2_deploy.total.err", "op": "<=", "value": 12, "note": "deploy 复选 rank 融合首战同判" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 29, "note": "w040 实绩 29" },
+    { "metric": "gen_human_fp32.style.occ", "op": ">=", "value": 0.8533, "note": "w040 0.8543 -0.1pt" },
+    { "metric": "gen_human_fp32.piece.occ", "op": ">=", "value": 0.8569, "note": "w040 0.8579 -0.1pt" },
+    { "metric": "gen_human_fp32.angle.occ", "op": ">=", "value": 0.8612, "note": "w040 0.8622 -0.1pt（stretch 0.8635=soup05 水平）" },
+    { "metric": "gen_human_fp32.roboflow.occ", "op": ">=", "value": 0.7601, "note": "w040 0.7611 -0.1pt" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 8, "note": "v49 9/v55 8 恢复带" },
+    { "metric": "bench.full", "op": ">=", "value": 7, "note": "w040/v49 持平 7" },
+    { "metric": "bench_int8.full", "op": ">=", "value": 0, "note": "【已降级】恒过观测" },
+    { "metric": "bench_int8_hb.full", "op": ">=", "value": 0, "note": "【已降级】恒过观测" }
+  ],
+  "baseline": {
+    "note": "v55 基线（delta 惯例；双优对账锚=docs/v56方案 §一 七点网格表）。",
+    "path": "runs/v55/auto_summary.json"
+  }
+}

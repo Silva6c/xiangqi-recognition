@@ -1,0 +1,111 @@
+{
+ "name": "v54",
+ "note": "v54 终局轮（自动化五轮收官）：最后一抽（v52 复刻配方 seed 2037→2039，26 帧 seed 抽样分布 32-38 的第 5 个样本）+全权重三口径终局复判+最终部署候选定稿。部署基座冻结 v49/human_best，本轮不因单轮数字替换（不退步铁律）。；watchdog 两次保命终止（基线 18.4GB+训练稳态叠加爆 58 线）后 workers 4→3 降 commit 重跑。；终局轮轻量化（第四次被 watchdog 保命终止后定案）：砍 4 大池（shard×2/rf_piece_hi/chessai_piece）12→8 池+total-samples 150000→50000+workers 2——系统基线持续上涨（ZCode 长会话）致完整配方无法安全运行，seed 抽样语义保留、偏离如实记录。",
+ "train": {
+  "width": "256,384,640,896",
+  "head-dim": 256,
+  "attn": true,
+  "aux-head": true,
+  "aux-weight": 0.4,
+  "attn-lr-mult": 10,
+  "cell-balance": true,
+  "cell-freq": "data/cell_class_freq.npz",
+  "init-from": "runs/v48/human_best.pt",
+  "lr": 5e-05,
+  "total-samples": 50000,
+  "batch": 48,
+  "workers": 2,
+  "val-every": 50,
+  "val-n": 256,
+  "real-ratio": 0.5,
+  "seed": 2039,
+  "real-npz": [
+   "data/real_photo_mix.npz",
+   "data/real_photo_recover45.npz",
+   "data/real_photo_v24.npz",
+   "data/real_photo_chessai.npz",
+   "data/bench_hot_transplant.npz",
+   "data/bench_hot_transplant_v3.npz",
+   "data/empty_paste_v49.npz",
+   "data/real_photo_v47.npz"
+  ],
+  "early-stop-patience": 10,
+  "select": [
+   "gen-select",
+   "human-select",
+   "bench-select"
+  ]
+ },
+ "gates": [
+  {
+   "metric": "human26_human_best.total.err",
+   "op": "<=",
+   "value": 33,
+   "note": "松锚=v49 32+1（复现检验：≤32 完全复现，33 选点噪声带内）"
+  },
+  {
+   "metric": "human26v2_human_best.total.err",
+   "op": "<=",
+   "value": 16,
+   "note": "松锚=v49 15+1"
+  },
+  {
+   "metric": "human26_human_best.real17.err",
+   "op": "<=",
+   "value": 15,
+   "note": "松锚=v49 14+1"
+  },
+  {
+   "metric": "gen_human_fp32.style.occ",
+   "op": ">=",
+   "value": 0.848,
+   "note": "v49 0.8531 -0.5pt"
+  },
+  {
+   "metric": "gen_human_fp32.piece.occ",
+   "op": ">=",
+   "value": 0.849,
+   "note": "v49 0.8541 -0.5pt"
+  },
+  {
+   "metric": "gen_human_fp32.angle.occ",
+   "op": ">=",
+   "value": 0.858,
+   "note": "v49 0.8626 -0.5pt"
+  },
+  {
+   "metric": "gen_human_fp32.roboflow.occ",
+   "op": ">=",
+   "value": 0.752,
+   "note": "v49 0.7565 -0.5pt"
+  },
+  {
+   "metric": "bench.full",
+   "op": ">=",
+   "value": 7,
+   "note": "v49 9 容差 2（复刻检验非竞赛）"
+  },
+  {
+   "metric": "bench_bench_best.full",
+   "op": ">=",
+   "value": 9,
+   "note": "v50/v51 已证 9-10 可达"
+  },
+  {
+   "metric": "bench_int8.full",
+   "op": ">=",
+   "value": 0,
+   "note": "【已降级】恒过观测"
+  },
+  {
+   "metric": "bench_int8_hb.full",
+   "op": ">=",
+   "value": 0,
+   "note": "【已降级】恒过观测"
+  }
+ ],
+ "baseline": {
+  "note": "v53 基线（delta 惯例；复现检验对照=runs/v49）。",
+  "path": "runs/v53/auto_summary.json"
+ }
+}

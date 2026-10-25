@@ -1,0 +1,55 @@
+{
+  "name": "v46",
+  "note": "v46 实物最后一格+bench 攻坚轮（docs/v46方案-实物最后一格与bench攻坚-20261018.md）：主变量=zfk 三材质 28302 框+efbok 分类 7190 张双弹药接入（贴片库 30102→约 5.5 万，炮类 3854→约 7500 翻倍；efbok 马炮车 2157 枚双向自证实测全为黑方字形——红线自证防了一次错标污染）；副变量=bench 热格移植 v2 组合补向（挪位构造 c1BAKABR1 型+纯擦除反面证据，背景迁移擦除——inpaint 抹断格线致 nano 判 x 实测废弃；real 156+synth 4000）。init-from v45/gen_best 续训，训练超参全沿用，seed 2031。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "attn": true,
+    "aux-head": true,
+    "aux-weight": 0.4,
+    "attn-lr-mult": 10,
+    "cell-balance": true,
+    "cell-freq": "data/cell_class_freq.npz",
+    "init-from": "runs/v45/gen_best.pt",
+    "lr": 5e-5,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 4,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2031,
+    "real-npz": [
+      "data/real_photo_mix.npz",
+      "data/real_photo_recover45.npz",
+      "data/real_photo_v24.npz",
+      "data/real_photo_chessai.npz",
+      "data/real_chessai_piece.npz",
+      "data/real_rf_piece_hi.npz",
+      "data/bench_hot_transplant.npz",
+      "data/bench_hot_transplant_v2.npz",
+      "data/real_rf_patch_transplant_shard0.npz",
+      "data/real_rf_patch_transplant_shard1.npz"
+    ],
+    "early-stop-patience": 10,
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "human26.real17.err", "op": "<=", "value": 20, "note": "核心预注册：实物域 v45 gen_best 21 → ≤20（双弹药主目标，最后一格）" },
+    { "metric": "human26_human_best.real17.err", "op": "<=", "value": 18, "note": "实物域 human_best 口径 v45 实绩 18 历史新低不退（部署口径主判据）" },
+    { "metric": "gen.style.occ",   "op": ">=", "value": 0.838, "note": "v45 0.8428 -0.5pt 防守" },
+    { "metric": "gen.piece.occ",   "op": ">=", "value": 0.838, "note": "v45 0.8426 -0.5pt 防守" },
+    { "metric": "gen.angle.occ",   "op": ">=", "value": 0.852, "note": "v45 0.8572 -0.5pt 防守" },
+    { "metric": "gen.roboflow.occ", "op": ">=", "value": 0.745, "note": "v45 0.7504 -0.5pt 防守" },
+    { "metric": "human26.total.err", "op": "<=", "value": 41, "note": "v45 gen_best 41 不退" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 37, "note": "v45 human_best 37 不退" },
+    { "metric": "bench.full",      "op": ">=", "value": 7,    "note": "v45 7 不退（bench v2 组合补向主目标：顽固簇 c1BAKABR1 型）" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 7, "note": "v45 7 不退" },
+    { "metric": "bench_int8.full", "op": ">=", "value": 6, "note": "int8 门维持 6（v46 起双基座导出顺序已修，bench_int8 恢复独立 gen_best 基座口径）" },
+    { "metric": "bench_int8_hb.full", "op": ">=", "value": 6, "note": "human_best 部署口径 int8 门维持 6" }
+  ],
+  "baseline": {
+    "note": "v45 双口径基线（v46 delta 基准）。",
+    "path": "runs/v45/auto_summary.json"
+  }
+}

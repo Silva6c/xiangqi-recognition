@@ -1,0 +1,58 @@
+{
+  "name": "v48",
+  "note": "v48 真实空格贴片+防退步机制轮（docs/v48方案-真实空格贴片与防退步机制-20261018.md，用户第一要求=保证不退步）：双轨——A 线=真实照片真空格贴片 4000 帧替代合成 erase_aug_v47 整池删除（v47 域 gap 定案：渲染空格纹理打不动实物域幻视、幻视 conf 0.821→0.404 证明机制欠量非无效；库端 24675 片结构门 QC=nano 帧级自证 0 产量不可行定案改 GridHead '.'-conf 预筛+非占子/IGNORE 邻接；贴入免 argmax 门=贴片+标签几何一致定案，贴入位判棋子是上下文混淆恰是训练要的证据）+ B 线=防退步机制代码化（deploy_best 终局复选：human26 主排序+gen 四轴 ±0.5% 容差 tiebreak，v47 数据回验自动选中 step150=部署最优侧；三选点线无条件逐周期巡检日志消灭选点盲区；human_step≤100 健康红旗；DONE/FAILED 标记反映 gates）。init-from v47/human_best.pt（首次弃 gen_best 基座：real17 18 vs 23 且 v47 修好 3 格只在 hb 权重），seed 2033。gates 13 项全不退门：最坏退化=v47/hb 持平 18，无 v46 式灾难通道；任一门 FAIL 即不进部署，部署基座保持 v47/human_best。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "attn": true,
+    "aux-head": true,
+    "aux-weight": 0.4,
+    "attn-lr-mult": 10,
+    "cell-balance": true,
+    "cell-freq": "data/cell_class_freq.npz",
+    "init-from": "runs/v47/human_best.pt",
+    "lr": 5e-5,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 4,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2033,
+    "real-npz": [
+      "data/real_photo_mix.npz",
+      "data/real_photo_recover45.npz",
+      "data/real_photo_v24.npz",
+      "data/real_photo_chessai.npz",
+      "data/real_chessai_piece.npz",
+      "data/real_rf_piece_hi.npz",
+      "data/bench_hot_transplant.npz",
+      "data/bench_hot_transplant_v3.npz",
+      "data/empty_paste_v48.npz",
+      "data/real_photo_v47.npz",
+      "data/real_rf_patch_transplant_v47_shard0.npz",
+      "data/real_rf_patch_transplant_v47_shard1.npz"
+    ],
+    "early-stop-patience": 10,
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "human26_human_best.real17.err", "op": "<=", "value": 18, "note": "v47 实绩 18 不退（部署口径主判据）" },
+    { "metric": "human26.real17.err", "op": "<=", "value": 20, "note": "禁止 v47 gen 口径 23 复现（v46 教训：25 异域稀释退步）" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 38, "note": "v47 历史新低 38 不退" },
+    { "metric": "human26.total.err", "op": "<=", "value": 42, "note": "v47 gen 口径 42 不退" },
+    { "metric": "gen_deploy.style.occ", "op": ">=", "value": 0.846, "note": "deploy 口径四轴挂 v47 human_best 实绩 -0.5pt（基座换 hb）:style 0.8514-0.005" },
+    { "metric": "gen_deploy.piece.occ", "op": ">=", "value": 0.848, "note": "v47 human_best 0.8528 -0.5pt" },
+    { "metric": "gen_deploy.angle.occ", "op": ">=", "value": 0.858, "note": "v47 human_best 0.8634 -0.5pt" },
+    { "metric": "gen_deploy.roboflow.occ", "op": ">=", "value": 0.752, "note": "v47 human_best 0.757 -0.5pt" },
+    { "metric": "bench.full", "op": ">=", "value": 8, "note": "v47 9/10 突破守住（容差 1）" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 8, "note": "v47 9/10 守住（容差 1）" },
+    { "metric": "human26_deploy.real17.err", "op": "<=", "value": 18, "note": "deploy_best 复合快照的实物不退门（v48 新机制主验证点）" },
+    { "metric": "bench_int8.full", "op": ">=", "value": 0, "note": "【已降级】int8 参考指标（用户拍板 v47 起出门恒过，报告观测）" },
+    { "metric": "bench_int8_hb.full", "op": ">=", "value": 0, "note": "【已降级】int8_hb 参考指标（同上恒过）" }
+  ],
+  "baseline": {
+    "note": "v47 基线（fp32 权威，v48 delta 基准）。",
+    "path": "runs/v47/auto_summary.json"
+  }
+}

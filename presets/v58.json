@@ -1,0 +1,58 @@
+{
+  "name": "v58",
+  "note": "v58 密排贴盘轮（零用户参与真弹药，docs/v58方案）：用户不能提供新实物照+傻瓜模式要求→①同源新帧路线关闭②gold68_v2 傻瓜包结论=42 帧共识帧 15 分歧格目检全对、标签 100% 正确无需修正、但占子格仅 3 个（nano 自证实锤）评测扩容正式关闭③模型侧最后一条真弹药=VN 裁片密排贴盘：augment_roboflow_patch.py 新增 dense 模式（空位贴 4-6+已占格替换 2-4/改标签=贴片类/防双帅/距离≥2），每帧 6-10 真子逼近实物密度，BASE_SEED 恒定同布局纯成分 A/B（v46b 方法论），产 real_rf_patch_dense_v58_shard0.npz 6000 帧，直打四轴最弱 piece/roboflow 轴真实形态覆盖。init 回归 v49/hb（v57 教训：插值完点不做 init；v50/v55 先例=26 帧端点路线）+seed 2043+13 池+workers2+patience14。训练门防崩坏为主（v2≤16/real17≤13/四轴≥六轮均值-0.5pt 带），进步判定归第四轮插值（r3_w085×v58 端点）组合完点。",
+  "train": {
+    "width": "256,384,640,896",
+    "head-dim": 256,
+    "attn": true,
+    "aux-head": true,
+    "aux-weight": 0.4,
+    "attn-lr-mult": 10,
+    "cell-balance": true,
+    "cell-freq": "data/cell_class_freq.npz",
+    "init-from": "runs/v49/human_best.pt",
+    "lr": 5e-05,
+    "total-samples": 150000,
+    "batch": 48,
+    "workers": 2,
+    "val-every": 50,
+    "val-n": 256,
+    "real-ratio": 0.5,
+    "seed": 2043,
+    "real-npz": [
+      "data/real_photo_mix_clean.npz",
+      "data/real_photo_v24_clean.npz",
+      "data/real_photo_chessai_clean.npz",
+      "data/real_chessai_piece_clean.npz",
+      "data/real_rf_piece_hi_clean.npz",
+      "data/bench_hot_transplant.npz",
+      "data/bench_hot_transplant_v3.npz",
+      "data/bench_hot_transplant_v3.npz",
+      "data/empty_paste_v50.npz",
+      "data/real_photo_v47_clean.npz",
+      "data/real_rf_patch_transplant_v47_shard0.npz",
+      "data/real_rf_patch_transplant_v47_shard1.npz",
+      "data/real_rf_patch_dense_v58_shard0.npz"
+    ],
+    "early-stop-patience": 14,
+    "select": ["gen-select", "human-select", "bench-select"]
+  },
+  "gates": [
+    { "metric": "human26v2_human_best.total.err", "op": "<=", "value": 16, "note": "防崩门（v55 16 带内；进步判定归第四轮插值）" },
+    { "metric": "human26v2_human_best.real17.err", "op": "<=", "value": 13, "note": "防崩门（六轮期望 13.3）；stretch ≤11（密排真实形态）" },
+    { "metric": "human26v2_deploy.total.err", "op": "<=", "value": 16, "note": "deploy rank 融合同判" },
+    { "metric": "human26_human_best.total.err", "op": "<=", "value": 34, "note": "防崩门（六轮期望 34.5）" },
+    { "metric": "gen_human_fp32.style.occ", "op": ">=", "value": 0.849, "note": "六轮均值 0.8549 -0.5pt 带" },
+    { "metric": "gen_human_fp32.piece.occ", "op": ">=", "value": 0.849, "note": "六轮均值 0.8550 -0.5pt（密排直打轴）" },
+    { "metric": "gen_human_fp32.angle.occ", "op": ">=", "value": 0.859, "note": "六轮均值 0.8652 -0.5pt" },
+    { "metric": "gen_human_fp32.roboflow.occ", "op": ">=", "value": 0.755, "note": "六轮均值 0.7605 -0.5pt（密排直打轴）" },
+    { "metric": "bench_bench_best.full", "op": ">=", "value": 9, "note": "v49 9/v56 10 恢复带" },
+    { "metric": "bench.full", "op": ">=", "value": 7, "note": "六轮带内" },
+    { "metric": "bench_int8.full", "op": ">=", "value": 0, "note": "【已降级】恒过观测（int8 暂缓）" },
+    { "metric": "bench_int8_hb.full", "op": ">=", "value": 0, "note": "【已降级】恒过观测" }
+  ],
+  "baseline": {
+    "note": "v57 基线（delta 惯例；插值对账锚=docs/v58方案 r3_w085 实绩）。",
+    "path": "runs/v57/auto_summary.json"
+  }
+}

@@ -5,5 +5,6 @@ runs/
 __pycache__/
 *.pyc
 *.npz
-*.onnx
 *.pt
+*.onnx
+!weights/*.onnx

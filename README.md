@@ -1,45 +1,52 @@
 # 中国象棋识别系统（GridHead）
 
-纯自研的中国象棋棋盘/棋子识别系统：从渲染数据工厂、三段式识别模型到分层评测考卷的
-完整训练与评测管线。识别链不依赖任何第三方识别模型。
+**这是一个完全由 AI 自主训练出来的象棋识别系统。** 从数据工厂、模型架构、训练
+配方到评测裁决，全程由 AI 完成：**GLM-5.3** 主力驱动（方案设计/代码实现/训练点火/
+评测裁决），**GLM-5.3-Flash** 与 **DeepSeek-V4.1-Flash** 并行协作（子任务分解/
+独立视角复核），人类负责提出目标、供给原始数据、拍板关键决策。两个月的 66 轮
+配方迭代，每轮判据预注册、结果全部入档——研发全过程的来龙去脉见
+[《我们来时的路》](docs/我们来时的路.md)。
 
-## 系统组成
+识别链分三段：**CornerSimCC 角点定位 → GridHead 90 格整板识别 → cell_cls 格级
+精分类 + 级联仲裁**，配五套分层评测考卷。对社区参照模型（nano）在全部口径上
+领先：26 帧人工金口径错误 11→2（级联）、四轴泛化 +1~5pt、上游 17 局对照识别环
+错 30 vs 49。
 
-三段式识别链 + 级联仲裁：
+## 模型权重
 
-| 环节 | 模型 | 说明 |
+现役 fp32 三件套已随仓库发布（`weights/`，共 ~14.8MB），输入输出规格与推理管线
+见 [weights/README.md](weights/README.md)：
+
+| 文件 | 模型 | 体积 |
 |---|---|---|
-| ① 角点定位 | **CornerSimCC**（633K / 2.54MB fp32） | 一维分布剖面回归四角（SimCC 式），长边方形窗 + 1.25 padding affine，输出 TL/TR/BL/BR 网格交叉点 |
-| ② 整板识别 | **GridHead**（~2.8M / 11.7MB fp32） | 90 格联合分类（280×315 输入），格间注意力（ReZero 残差）+ 占子辅助头 + 格条件类平衡损失 |
-| ③ 格级精分类 | **cell_cls**（cell 级小分类器） | 对低置信格逐格重判，四通道级联仲裁：低置信单向门控 / 冲突采纳 / 子数校验 / 对换家族 |
+| `weights/gridhead_fp32.onnx` | GridHead 整板识别 | 11.7MB |
+| `weights/corner_simcc_v1.onnx` | CornerSimCC 角点定位（v6 权重） | 2.5MB |
+| `weights/cell_cls_fp32.onnx` | cell_cls 格级精分类 | 0.6MB |
 
-识别类别 `".xKABNRCPkabnrcp"`（空/占位/帅仕相马车炮兵 + 黑方小写），朝向自适应
-（帅/将行位判 STANDARD/FLIPPED，180° 点镜像正则化）。
+## 端上核心代码
+
+手机端实时识别链的核心 Kotlin 实现在 [`android/`](android/README.md)（从生产 App
+中抽出，依赖闭包干净：onnxruntime-android + 一个棋子枚举），与 `weights/` 直接配套。
 
 ## 目录速览
 
 ```
-├── corner_model.py / corner_train.py / corner_export.py / corner_infer.py
-│     角点模型（CornerSimCC）：训练/导出/推理（含 boxPlausible 质量门）
-├── model.py                     整板模型 GridHead（注意力/辅助头/解码层开关）
-├── train.py / export.py         整板训练与 fp32/int8 导出
-├── cell_model.py / cell_train.py / cell_export.py
-│                                 格级精分类器三件套
-├── renderer.py                  在线渲染数据工厂（贴片库/光度弹药/遮挡/UI 背景模拟）
-├── corner_data.py / cell_data.py  渲染放置几何与增广（角点 GT 同步变换）
+├── weights/                     部署权重三件套（fp32 onnx）+ 规格说明
+├── android/                     端上识别核心（Kotlin，生产代码抽出的参考实现）
+├── docs/技术文档.md             架构/数据体系/评测方法/部署口径
+├── docs/我们来时的路.md         两个月 66 轮的研发叙事（含全部 FAIL）
+├── model.py                     GridHead（格间注意力/占子辅助头/解码层开关）
+├── corner_model.py 等           CornerSimCC 训练/导出/推理（boxPlausible 质量门）
+├── cell_model.py 等             cell_cls 三件套
+├── train.py / export.py         整板训练与 fp32 导出
+├── renderer.py / corner_data.py 在线渲染数据工厂（角点 GT 解析自证）
 ├── pipeline.py                  一键训练编排：预检→watchdog→训练→导出→评测→报告
-├── presets/                     配方库 v35~v66（每轮唯一主变量 + 预注册判据 gates）
-├── eval_human26.py              26 帧人工真值金口径
-├── eval_bench.py                10 帧难例考卷
-├── eval_gen.py                  四轴泛化（字体/棋子/角度/贴片）
-├── eval_screen30.py             screen30 三环考卷（定位/识别上限/端到端）
-├── eval_nano17.py               上游对照评测（17 局，full-err-k 口径）
-├── eval_cascade*.py             级联仲裁评测
-├── augment_*_patch.py           外部数据裁片/贴片管线（roboflow/zfk/efbok/VN）
-├── parse_roboflow_coco.py       COCO 框-格映射入池管线
-├── make_photo_warp_pool.py      街拍 warp 池工厂（伪标签+编制闸+一致格 IGNORE）
-├── fetch_fonts.py               训练字体拉取（SIL OFL 授权字体）
-└── ATTRIBUTION.md               训练集来源与许可声明（本仓库不分发数据本体）
+├── presets/                     配方库 v35~v66（每轮唯一主变量 + 预注册判据）
+├── eval_human26.py 等           五套考卷：26帧金口径/bench/四轴/screen30/nano17
+├── augment_*_patch.py           外部数据裁片/贴片管线
+├── make_photo_warp_pool.py      半监督伪标签池工厂（一致格 IGNORE）
+├── fetch_fonts.py               训练字体拉取（OFL/免费商用授权）
+└── ATTRIBUTION.md               训练集来源与许可声明（数据本体不随仓库分发）
 ```
 
 ## 快速开始
@@ -47,34 +54,55 @@
 ```bash
 pip install torch onnxruntime opencv-python numpy
 
-# 1) 拉取训练字体（SIL OFL）
+# 1) 拉取训练字体
 python fetch_fonts.py
 
-# 2) 一键训练（配方=presets/v66.json，训练产物落 runs/<名>/）
+# 2) 一键训练（配方=presets/v66.json）
 python pipeline.py --preset v66 --run-name v66 --baseline runs/v60/auto_summary.json
 
-# 3) 评测（金口径/难例/四轴泛化）
+# 3) 评测
 python eval_human26.py runs/v66/human_fp32.onnx
-python eval_gen.py runs/v66/gen_fp32.onnx
 ```
 
-> 注意：本仓库按"研究管线"原样开源——数据集本体、训练权重、评测 npz 不随仓库分发
-> （来源与获取方式见 [ATTRIBUTION.md](ATTRIBUTION.md)）；部分评测脚本中的模型路径为
-> 作者本机绝对路径，使用时按需修改。
+> 本仓库按研究管线原样开源：数据集本体、评测 npz 不随仓库分发（获取方式见
+> [ATTRIBUTION.md](ATTRIBUTION.md)）；部分脚本中的模型路径为作者本机绝对路径，
+> 使用时按需修改；第三方模型（nano/RTMPose）不随仓库分发。
+
+## 技术文档
+
+- [docs/技术文档.md](docs/技术文档.md)：三段式管线、SimCC 目标与窗语义、格条件类
+  平衡损失、级联仲裁四通道、数据工厂与评测隔离纪律、部署口径（fp32，int8 已弃）。
+- [docs/我们来时的路.md](docs/我们来时的路.md)：从渲染工厂第一行代码到系统级反超，
+  两个月的完整叙事——包括全部失败轮次。
 
 ## 训练集来源
 
-全部训练数据的来源与许可逐集列于 **[ATTRIBUTION.md](ATTRIBUTION.md)**，概要：
+全部训练数据的来源与许可逐集列于 **[ATTRIBUTION.md](ATTRIBUTION.md)**（Roboflow
+Universe 13 集 CC BY 4.0、chessai-data Zenodo、自采数据、本地未公开数据集）。
+本仓库只发布代码与权重，不分发任何数据集本体。
 
-- **Roboflow Universe 公开数据集**（13 集，约 4.5 万图，逐集核验 CC BY 4.0）
-- **chessai-data**（nrl-ai，Zenodo DOI 10.5281/zenodo.1234）
-- **自采数据**：网络爬取街拍棋盘照片、真机录屏帧（仅训练自用，不分发）
-- 另有本地导入数据集（未公开许可，仅内部训练，不入库不分发）
+## 致谢
 
-本仓库**只发布代码，不分发任何数据集本体**；衍生权重亦不随仓库分发。
+- [Shirakawa-Kotone/chinese-chess-helper](https://github.com/Shirakawa-Kotone/chinese-chess-helper)
+  （CCH）：项目的起点与长期参照系。
+- [TheOne1006/chinese-chess-recognition](https://github.com/TheOne1006/chinese-chess-recognition)：
+  上游对照评测集来源，让"领先"有了外部锚点。
+- **一切数据提供者**：Roboflow Universe 的数据集作者们、chessai-data 的
+  Nguyen Viet-Anh、三材质数据集标注者张福凯/大宝，以及所有公开棋盘照片的拍摄者。
+
+## 参与贡献
+
+**欢迎更多人参与进来。** Issues / PR 都开放，特别欢迎这些方向：
+
+- **数据**：更多真实场景棋盘照片/录屏（含标注），尤其是街拍俯拍域——这是当前
+  识别链唯一明确的短板
+- **评测**：新考卷设计与真值校验（我们的评测方法论：判据预注册+数字入档，欢迎
+  挑战与扩展）
+- **端上**：NNAPI/GPU delegate 实测与移植、更多机型的延迟数据
+- **训练**：渲染弹药扩展、新配方实验（presets 体系加一个 JSON 就能开新轮）
 
 ## License
 
 - 代码：**GPL-3.0**（见 [LICENSE](LICENSE)）
-- 训练字体：OFL / 免费商用授权开源字体（由 fetch_fonts.py 获取，各字体许可以其上游为准）
-- 数据集：各自许可见 ATTRIBUTION.md（CC BY 4.0 等署名要求在该文件中保留）
+- 权重：随代码同许可分发；训练数据各自许可见 ATTRIBUTION.md
+- 训练字体：OFL / 免费商用授权开源字体（由 fetch_fonts.py 获取，许以上游为准）

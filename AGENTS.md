@@ -4,11 +4,13 @@
 独立开源项目（GPLv3）：**https://github.com/Silva6c/xiangqi-recognition**。
 
 > **主仓地位（2026-10-27 起）**：本仓是识别引擎的**唯一演进主仓**——训练/评测/修复
-> 单向发生于此。原产品项目（Cabinet）侧的 `phone/tools/recog` 已**冻结为历史基线**
-> （只读，仅供其本地诊断脚本临时使用，不回吃本仓修复）。产品端通过 weights/ 三件套
-> 与 android/ 推理核心消费引擎；权重更新随本仓发布节奏同步。手机端推理核心在 `android/`，训练/评测管线
-在本仓根目录（Python 脚本平铺，`import` 同目录）。本文件是**任何 agent（ZCode / Codex /
-OpenCode / DeepSeek / 子代理）的冷启动入口**——读完即可接手，不依赖任何历史会话。
+> 单向发生于此，权重更新随本仓发布节奏同步。原产品项目（Cabinet）侧 2026-10-27 起
+> **产品全量回退第三方原版**（nano/RTMPose 现役、自研三件套在其 assets 留档 A/B，
+> 现状与规程见其 `docs/产品端手册.md`）；其 `phone/tools/recog` 训练代码**冻结为
+> 历史基线**（只读，不回吃本仓修复）。手机端推理核心在 `android/`，训练/评测管线
+> 在本仓根目录（Python 脚本平铺，`import` 同目录）。本文件是**任何 agent（ZCode /
+> Codex / OpenCode / DeepSeek / 子代理）的冷启动入口**——读完即可接手，不依赖任何
+> 历史会话。
 
 ## 冷启动协议（按序读，禁止盲目探查）
 

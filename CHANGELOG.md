@@ -6,6 +6,13 @@
 
 ## [Unreleased]
 
+### 修复
+- android 参考实现角点解码硬伤：`detectCorners` 原硬调 `boxDecode`（v68 混合头 7 分布
+  契约），而 `weights/corner_simcc_v1.onnx` 是 v4 权重（4 角点 simcc）——corner 分支
+  一跑即数组越界。改为按输出分布数自动分流（4→`simccKeypoints`，7→`boxDecode`），
+  RTMPose / v4 / v68 三种模型契约均正确解码；过时注释同步（原产品项目已于 2026-10-27
+  全量回退第三方模型，本仓参考实现保持自研默认）。
+
 ### 待办
 - android 参考实现 package 重命名（`com.cabinet.assist` → 中性包名，12 处文档路径联动）
 - r3 系判据对称化（presets gates → judges/ 统一格式 + r3_accept.py）

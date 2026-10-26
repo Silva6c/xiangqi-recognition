@@ -28,13 +28,13 @@ import java.nio.FloatBuffer
 class OnnxBoardRecognizer(
     private val assets: AssetManager,
     private val profiling: Boolean = false,
-    /** 分类模型覆盖（v45 A/B 引入）：**v66 国产化定版默认 gridhead fp32**（历史值 nano
-     *  已由 AssistConfig getter 迁移，assets 已删 nano_v3）。契约与 nano 完全一致，解码零改动。 */
+    /** 分类模型覆盖（v45 A/B 引入）：默认 gridhead fp32；CCH nano 契约与 gridhead
+     *  完全一致（解码零改动），可传 CLS_MODEL_NANO 切换。 */
     private val clsModel: String = CLS_MODEL_GRIDHEAD,
-    /** v63 两级引擎：cell_cls 级联仲裁开关（AssistConfig.cascadeEnabled，v66 国产化默认开） */
+    /** v63 两级引擎：cell_cls 级联仲裁开关（产品端由 AssistConfig.cascadeEnabled 传入） */
     private val cascadeEnabled: Boolean = true,
-    /** v64 角点模型覆盖：**v66 国产化定版默认 corner**（CornerSimCC 长边方形窗，窗语义
-     *  与模型绑定见 poseAffine）；历史值 rtmpose 已由 getter 迁移，assets 已删 4_v6-0301。 */
+    /** v64 角点模型覆盖：默认自研 CornerSimCC（长边方形窗，窗语义与模型绑定见
+     *  poseAffine）；可传 POSE_MODEL_DEFAULT 切 CCH RTMPose（第三方模型不随仓分发）。 */
     private val poseModel: String = POSE_MODEL,
 ) {
 
@@ -43,16 +43,15 @@ class OnnxBoardRecognizer(
 
         private const val POSE_INPUT = 256
         private const val POSE_PADDING = 1.25f
-        /** 历史基线（CCH RTMPose）；v66 国产化已从 assets 删除，常量仅供考古/编译 */
+        /** 历史基线（CCH RTMPose）；本仓不随仓库分发（第三方模型），常量仅供对照 */
         const val POSE_MODEL_DEFAULT = "models/4_v6-0301.onnx"
-        /** v64 起自研角点（现役 v67 box 参数化：双头 [1,3,512]→box6→c±u±v 四角，
-         *  OnnxGeom.boxDecode 解码+结构护栏；screen30 环1 30/30 vs RTMPose 17/30，
-         *  QQ ornate 域 v6 塌缩事故对症，docs/v67方案-角点边缘化重设计-20261026.md）。
-         *  输入契约同（长边方形窗 poseAffine）；差异仅输出解码（simccKeypoints→boxDecode）。
-         *  【雷区】新旧模型输出形状不同（[1,4,512] vs [1,3,512]）——assets 里的
-         *  corner_simcc_v1.onnx 必须与 boxDecode 原子替换，旧 4 角点模型加载后解码错位。 */
+        /** 自研角点。**weights/corner_simcc_v1.onnx 为 v4 权重**（4 角点 simcc
+         *  [1,4,512]×2，走 simccKeypoints 解码，screen30 环1 30/30 vs RTMPose 17/30）；
+         *  输入契约同（长边方形窗 poseAffine）。【雷区】v68 混合头模型（[1,7,512]×2）若
+         *  日后部署，解码层已备好自动分流（detectCorners 按输出分布数 4/7 分流），但
+         *  模型文件必须与 boxDecode 契约原子替换，4 角点模型喂 boxDecode 会越界错位。 */
         const val POSE_MODEL_SELF = "models/corner_simcc_v1.onnx"
-        /** v66 国产化定版：默认=自研 CornerSimCC（长边方形窗语义绑定，见 poseAffine） */
+        /** 默认=自研 CornerSimCC（长边方形窗语义绑定，见 poseAffine） */
         private val POSE_MODEL = POSE_MODEL_SELF
         /** 现网分类模型（CCH nano，行为基线） */
         const val CLS_MODEL_NANO = "models/nano_v3-0319.onnx"
@@ -374,16 +373,25 @@ class OnnxBoardRecognizer(
         OnnxTensor.createTensor(ortEnv, poseInputBuf,
             longArrayOf(1, 3, POSE_INPUT.toLong(), POSE_INPUT.toLong())).use { tensor ->
             session.run(mapOf(poseInputName to tensor)).use { results ->
-                // v67：输出两个张量 box 双头，形状各 [1,3,512]（x 头 cx/ux/vx，y 头 cy/uy/vy）
+                // 输出两个张量（x 头/y 头），按每头分布数自动分流解码契约
+                //（同 CornerInfer._decode_auto 三契约思路）：
+                //   4 分布=4 角点 simcc（RTMPose 与现役 v4 corner_simcc_v1 同契约）
+                //     → simccKeypoints 逐点 argmax；
+                //   7 分布=v68 box+残差混合头 → boxDecode（该模型未部署，当前不会命中）
                 val outNames = poseOutputNames.ifEmpty { session.outputNames.toList() }
                 val tx = results.get(outNames[0]).get() as OnnxTensor
                 val ty = results.get(outNames[1]).get() as OnnxTensor
                 val arrX = drain(tx.floatBuffer, simccX); simccX = arrX
                 val arrY = drain(ty.floatBuffer, simccY); simccY = arrY
-                // box6 解码 + 结构护栏（对边平行由构造保证；护栏拒绝=定位不可信）
-                val kps = OnnxGeom.boxDecode(arrX, arrY, POSE_INPUT) ?: run {
-                    if (profiling) tPoseRun += System.nanoTime() - t
-                    return null
+                val heads = if (tx.shape.size > 1) tx.shape[1].toInt() else 4
+                val kps = if (heads == 7) {
+                    // box6 解码 + 结构护栏（对边平行由构造保证；护栏拒绝=定位不可信）
+                    OnnxGeom.boxDecode(arrX, arrY, POSE_INPUT) ?: run {
+                        if (profiling) tPoseRun += System.nanoTime() - t
+                        return null
+                    }
+                } else {
+                    OnnxGeom.simccKeypoints(arrX, arrY, 4, POSE_INPUT)
                 }
                 // warp 空间坐标逐点逆仿射回原图
                 val inv = OnnxGeom.invertAffine(m)

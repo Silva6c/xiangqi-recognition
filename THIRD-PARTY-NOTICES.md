@@ -30,14 +30,10 @@ CC BY 4.0 逐集署名、chessai-data、自采与本地未公开数据集）。�
 
 ## 参照与上游项目
 
-- [Shirakawa-Kotone/chinese-chess-helper](https://github.com/Shirakawa-Kotone/chinese-chess-helper)：
-  项目起点与长期参照系；android 参考实现中的识别器移植自其代码（上游无 LICENSE
-  文件，历史移植经作者私许，许可问题已于 2026-10 解决）。其生态内流通的
-  nano/RTMPose 权重**不随本仓库分发**。
 - [yolo12138/Chinese_Chess_Recognition](https://huggingface.co/spaces/yolo12138/Chinese_Chess_Recognition)
   （**MIT**）：历史对照权重 nano_v3-0319 与 4_v6-0301（RTMPose SimCC 角点）的
   **原作者发布仓**——2026-10-27 考古确认 4_v6 与本地副本逐字节一致、nano 为其
-  INT8 量化版（契约/argmax 逐位一致）。该空间即 CCH 识别管线的上游源头。
+  INT8 量化版（契约/argmax 逐位一致）。该空间即上游识别管线的源头。
 - [Vincentzyx/VinXiangQi](https://github.com/Vincentzyx/VinXiangQi)（GPL-3.0）：
   历史对照模型与 YOLO 解码策略来源（android 参考实现的 YoloBoardDetector/
   YoloPostprocessor 移植自其 GetBoardFromPrediction，头注释保留出处）；

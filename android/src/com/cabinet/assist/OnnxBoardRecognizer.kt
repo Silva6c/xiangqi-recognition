@@ -8,7 +8,7 @@ import android.content.res.AssetManager
 import java.nio.FloatBuffer
 
 /**
- * ONNX 两步式棋盘识别（移植自 chinese-chess-helper 的 OnnxRecognizer，已获作者许可使用）：
+ * ONNX 两步式棋盘识别（移植自上游识别器项目（经作者私许））：
  *
  * 1. RTMPose 关节点模型检测棋盘 4 角（A0 左上 / A8 右上 / J0 左下 / J8 右下），
  *    全图 bbox + 1.25 padding 仿射到 256×256，SimCC 输出 argmax 解码后逆仿射回原图；
@@ -28,13 +28,13 @@ import java.nio.FloatBuffer
 class OnnxBoardRecognizer(
     private val assets: AssetManager,
     private val profiling: Boolean = false,
-    /** 分类模型覆盖（v45 A/B 引入）：默认 gridhead fp32；CCH nano 契约与 gridhead
+    /** 分类模型覆盖（v45 A/B 引入）：默认 gridhead fp32；上游 nano 契约与 gridhead
      *  完全一致（解码零改动），可传 CLS_MODEL_NANO 切换。 */
     private val clsModel: String = CLS_MODEL_GRIDHEAD,
     /** v63 两级引擎：cell_cls 级联仲裁开关（产品端由 AssistConfig.cascadeEnabled 传入） */
     private val cascadeEnabled: Boolean = true,
     /** v64 角点模型覆盖：默认自研 CornerSimCC（长边方形窗，窗语义与模型绑定见
-     *  poseAffine）；可传 POSE_MODEL_DEFAULT 切 CCH RTMPose（第三方模型不随仓分发）。 */
+     *  poseAffine）；可传 POSE_MODEL_DEFAULT 切上游 RTMPose（第三方模型不随仓分发）。 */
     private val poseModel: String = POSE_MODEL,
 ) {
 
@@ -43,7 +43,7 @@ class OnnxBoardRecognizer(
 
         private const val POSE_INPUT = 256
         private const val POSE_PADDING = 1.25f
-        /** 历史基线（CCH RTMPose）；本仓不随仓库分发（第三方模型），常量仅供对照 */
+        /** 历史基线（上游 RTMPose）；本仓不随仓库分发（第三方模型），常量仅供对照 */
         const val POSE_MODEL_DEFAULT = "models/4_v6-0301.onnx"
         /** 自研角点。**weights/corner_simcc_v1.onnx 为 v4 权重**（4 角点 simcc
          *  [1,4,512]×2，走 simccKeypoints 解码，screen30 环1 30/30 vs RTMPose 17/30）；
@@ -53,7 +53,7 @@ class OnnxBoardRecognizer(
         const val POSE_MODEL_SELF = "models/corner_simcc_v1.onnx"
         /** 默认=自研 CornerSimCC（长边方形窗语义绑定，见 poseAffine） */
         private val POSE_MODEL = POSE_MODEL_SELF
-        /** 现网分类模型（CCH nano，行为基线） */
+        /** 现网分类模型（上游 nano，行为基线） */
         const val CLS_MODEL_NANO = "models/nano_v3-0319.onnx"
         /** v63 定稿：自研 GridHead fp32（r3_w085，26 帧 2+bench 10/10；int8 砍除=量化+13 错不抵体积/速度冗余收益） */
         const val CLS_MODEL_GRIDHEAD = "models/gridhead_fp32.onnx"

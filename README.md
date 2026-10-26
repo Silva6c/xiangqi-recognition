@@ -124,11 +124,8 @@ Universe 13 集 CC BY 4.0、chessai-data Zenodo、自采数据、本地未公开
 
 ## 致谢
 
-- [Shirakawa-Kotone/chinese-chess-helper](https://github.com/Shirakawa-Kotone/chinese-chess-helper)
-  （CCH）：项目的起点与长期参照系（识别器移植经作者私许）。
 - [yolo12138/Chinese_Chess_Recognition](https://huggingface.co/spaces/yolo12138/Chinese_Chess_Recognition)
-  （MIT）：历史对照权重 nano_v3 与 RTMPose 角点 4_v6 的**原作者发布仓**（CCH 识别
-  管线的上游源头，考古对账见 docs）。
+  （MIT）：历史对照权重 nano_v3 与 RTMPose 角点 4_v6 的**原作者发布仓**（上游识别管线的源头，考古对账见 docs）。
 - [Vincentzyx/VinXiangQi](https://github.com/Vincentzyx/VinXiangQi)（GPL-3.0）：
   YOLO 对照模型与解码策略来源；作者亦为 Pikafish 创始作者之一。
 - [TheOne1006/chinese-chess-recognition](https://github.com/TheOne1006/chinese-chess-recognition)：

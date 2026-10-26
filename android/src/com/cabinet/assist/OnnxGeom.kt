@@ -6,7 +6,7 @@ import kotlin.math.floor
 /**
  * ONNX 识别管线的纯 JVM 几何与解码工具（无 Android 依赖，可单测）。
  *
- * 坐标与矩阵约定与 OpenCV 对齐（移植自 chinese-chess-helper 的 OnnxRecognizer）：
+ * 坐标与矩阵约定与 OpenCV 对齐（移植自上游识别器项目）：
  * - 仿射矩阵 2×3 按行存 [a b c; d e f]，正向语义 dst = M·src；
  * - 单应矩阵 3×3 按行存 9 元素，最后一元素固定为 1；
  * - warp 采样一律用"输出像素经逆矩阵找源坐标"（OpenCV warpAffine/warpPerspective 默认行为）；

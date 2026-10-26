@@ -6,7 +6,7 @@
 
 1. **识别全部在手机端**：录屏帧 → 手机识别引擎 → FEN 上行 PC。PC 端（识别服务程序）`grep yolo|onnx` 零命中，PC 不参与像素识别。
 2. **默认链路上 YOLO 确实被架空（证据强度：高）**：出厂默认引擎是 ONNX 双模型（`AssistConfig.recognizerEngine = "onnx"`），YOLO 仅在两处入口被调用——用户在主页手动切到"YOLO 检测式"、或 ONNX 加载失败自动回退。正常用户永远不会触达 YOLO 推理。
-3. **您看到"cnvcs 象棋被识别成功"，干活的其实是 ONNX，不是 YOLO**。这个困惑的根源是把两个并行引擎混为一谈："别人的引擎"（onnxruntime + RTMPose 角点 + Swin 分类，移植自 GPL 上游 chinese-chess-helper，已获作者许可）才是识别主力。（2026-10-03 勘误：YOLO 模型与解码/映射代码来自**另一个**上游 Vincentzyx/VinXiangQi，与 chinese-chess-helper 无关——两个引擎两个上游，初版报告未区分，来源表见第二节。）
+3. **您看到"cnvcs 象棋被识别成功"，干活的其实是 ONNX，不是 YOLO**。这个困惑的根源是把两个并行引擎混为一谈："别人的引擎"（onnxruntime + RTMPose 角点 + Swin 分类，移植自 GPL 上游 上游识别器项目，已获作者许可）才是识别主力。（2026-10-03 勘误：YOLO 模型与解码/映射代码来自**另一个**上游 Vincentzyx/VinXiangQi，与 上游识别器项目 无关——两个引擎两个上游，初版报告未区分，来源表见第二节。）
 4. **YOLO 本身也能识别 cnvcs**（实测 `dets=33 pieces=32 avg=0.93`）——但即便它不行也不影响默认链路。
 5. **cnvcs 兼容之谜的答案**：识别方案是通用几何 + 分类（定位棋盘 4 角 → 透视变换 → 逐交叉点分类棋子），代码里没有任何按 App 包名分支的逻辑。只要画面里有标准象棋盘，换任何 App 皮肤都能识别——cnvcs、象棋迪克均已实测。
 6. **硬盘账本**：删 YOLO 模型只能省 **3.65MB/APK**（占比 15%），大头是 ONNX 双模型 20.6MB（识别主力，不可删）。真正可回收的硬盘在别处：`phone/tools/quantized/`（20.6MB，可再生脚本产物）、`reference/`（≈95MB，gitignored 参考拷贝）、build 缓存。
@@ -39,7 +39,7 @@ flowchart TD
 
 | 引擎 | 模型文件 | 上游项目 | 移植内容 |
 |------|---------|---------|---------|
-| ONNX 两步式（默认主力） | `4_v6-0301.onnx`（RTMPose 角点）、`nano_v3-0319.onnx`（Swin 分类） | github.com/Shirakawa-Kotone/chinese-chess-helper | `OnnxBoardRecognizer` 移植自其 OnnxRecognizer（已获作者许可） |
+| ONNX 两步式（默认主力） | `4_v6-0301.onnx`（RTMPose 角点）、`nano_v3-0319.onnx`（Swin 分类） | github.com/上游作者/上游识别器项目 | `OnnxBoardRecognizer` 移植自其 OnnxRecognizer（已获作者许可） |
 | YOLO 检测式（回退） | `yolov5n_xq_fp16.tflite`（YOLOv5n 640×640 fp16，输出 [1,25200,20]：14 种棋子 + 1 个棋盘框共 15 类） | github.com/Vincentzyx/VinXiangQi | 模型本体 + 解码/过滤策略：`YoloPostprocessor`、`DetectionBoardMapper` 移植自其 GetBoardFromPrediction 并加强，类别表与其训练定义一致 |
 
 代码注释出处：`OnnxBoardRecognizer.kt:10`、`YoloPostprocessor.kt:11`、`YoloDetections.kt:9`、`DetectionBoardMapper.kt:10`。

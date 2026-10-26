@@ -108,6 +108,9 @@ python eval_human26.py weights/gridhead_fp32.onnx
 
 ## 技术文档
 
+- [docs/MODEL_CARD.md](docs/MODEL_CARD.md)：**模型卡**——用途/契约/成绩/局限明示/许可立场
+- [CHANGELOG.md](CHANGELOG.md)：版本变更记录（v1.0.0 = 现役三件套首发）
+- [CONTRIBUTING.md](CONTRIBUTING.md)：贡献指南（代码 PR / 数据贡献格式 / agent 接手回路）
 - [docs/技术文档.md](docs/技术文档.md)：三段式管线、SimCC 目标与窗语义、格条件类
   平衡损失、级联仲裁四通道、数据工厂与评测隔离纪律、部署口径（fp32，int8 已弃）。
 - [docs/我们来时的路.md](docs/我们来时的路.md)：从渲染工厂第一行代码到系统级反超，

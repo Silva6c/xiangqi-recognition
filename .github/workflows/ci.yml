@@ -1,0 +1,47 @@
+# CI 冒烟（免 GPU 档）：每次 push/PR 在云端干净环境自动验证——
+# 全仓语法 + 最小回归测试 + 验收工具自检。目标 ~3 分钟纯 CPU。
+# 边界：训练与 GPU 评测不在 CI（本机执行）；本文件只护"新 clone 能跑"。
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # CPU 版 torch（~200MB，远小于 CUDA 全量），其余依赖照 requirements
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          grep -vE '^torch' requirements.txt | pip install -r /dev/stdin
+
+      - name: 全仓语法检查
+        run: python -m py_compile *.py tools/bench_recog/*.py tests/*.py
+
+      - name: 最小回归测试
+        run: python tests/test_corner_model.py
+
+      - name: 验收工具自检
+        run: python corner_accept.py --help > /dev/null
+
+      - name: 数据工厂冒烟（负样本路径，不依赖任何数据资产）
+        run: |
+          python - <<'EOF'
+          import random
+          from corner_data import make_negative_frame, prep_input
+          rng = random.Random(7)
+          x, box, res = prep_input(make_negative_frame(rng), None)
+          assert x.shape == (3, 256, 256) and box is None and res is None
+          print("负样本管线 OK", x.shape)
+          EOF

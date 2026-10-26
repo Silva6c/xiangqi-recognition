@@ -8,6 +8,8 @@ onnx==1.20.1
 onnxruntime==1.26.0
 numpy==2.2.6
 pillow==11.1.0
+fontTools>=4.53   # 可变字体实例化（fetch_fonts.py 扩池；BSD-3-Clause）
+requests>=2.31    # 街拍数据爬取 crawl_photos.py（Apache-2.0）
 
 # 端上（android/）依赖为 Gradle 管理：com.microsoft.onnxruntime:onnxruntime-android
 # 见 android/README.md，不在此列。

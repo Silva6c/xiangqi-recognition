@@ -125,11 +125,23 @@ Universe 13 集 CC BY 4.0、chessai-data Zenodo、自采数据、本地未公开
 ## 致谢
 
 - [Shirakawa-Kotone/chinese-chess-helper](https://github.com/Shirakawa-Kotone/chinese-chess-helper)
-  （CCH）：项目的起点与长期参照系。
+  （CCH）：项目的起点与长期参照系（识别器移植经作者私许）。
+- [yolo12138/Chinese_Chess_Recognition](https://huggingface.co/spaces/yolo12138/Chinese_Chess_Recognition)
+  （MIT）：历史对照权重 nano_v3 与 RTMPose 角点 4_v6 的**原作者发布仓**（CCH 识别
+  管线的上游源头，考古对账见 docs）。
+- [Vincentzyx/VinXiangQi](https://github.com/Vincentzyx/VinXiangQi)（GPL-3.0）：
+  YOLO 对照模型与解码策略来源；作者亦为 Pikafish 创始作者之一。
 - [TheOne1006/chinese-chess-recognition](https://github.com/TheOne1006/chinese-chess-recognition)：
   上游对照评测集来源，让"领先"有了外部锚点。
-- **一切数据提供者**：Roboflow Universe 的数据集作者们、chessai-data 的
-  Nguyen Viet-Anh、三材质数据集标注者张福凯/大宝，以及所有公开棋盘照片的拍摄者。
+- [OpenMMLab RTMPose](https://github.com/open-mmlab/mmpose)（Apache-2.0）：
+  角点定位架构出处。
+- **一切数据提供者**：Roboflow Universe 的数据集作者们（逐集署名见
+  [ATTRIBUTION.md](ATTRIBUTION.md)）、chessai-data 的 Nguyen Viet-Anh、三材质
+  数据集标注者张福凯/大宝，以及所有公开棋盘照片的拍摄者。
+- **训练字体的作者与项目**：思源黑体/宋体（Adobe & Google）、Noto CJK（Google）、
+  霞鹜文楷系列与悠哉（lxgw）、得意黑（atelier-anchor）、朱雀仿宋（TrionesType）、
+  jf 粉圆（justfont）、阿里巴巴普惠体、以及 Google Fonts 收录的各中文手写字体
+  设计师（逐项目表见 ATTRIBUTION.md §六）。
 
 ## 参与贡献
 
@@ -146,6 +158,8 @@ Universe 13 集 CC BY 4.0、chessai-data Zenodo、自采数据、本地未公开
 
 ## License
 
+- 版权：Copyright (C) 2026 Silva6c 与协作 AI（GLM-5.3 系主训、多 agent 协作复核）
 - 代码：**GPL-3.0**（见 [LICENSE](LICENSE)）
 - 权重：随代码同许可分发；训练数据各自许可见 ATTRIBUTION.md
-- 训练字体：OFL / 免费商用授权开源字体（由 fetch_fonts.py 获取，许以上游为准）
+- 训练字体：OFL / 免费商用授权开源字体（由 fetch_fonts.py 获取，逐项目署名见
+  ATTRIBUTION.md §六，许以上游为准）

@@ -31,7 +31,8 @@
    训练侧的 CPU 延迟口径见 docs/技术文档.md §8。
 3. **失败语义**：`boxPlausible` 拦截角点输出返回 null——调用方应触发全图重定位而非
    采用错误角点（宁 null 不错点）。
-4. `YoloBoardDetector` 路径需要第三方 YOLOv5 tflite 模型（**不随本仓库分发**），仅复现
+4. `YoloBoardDetector` 路径需要第三方 YOLOv5 tflite 模型（**不随本仓库分发**，出自
+   [Vincentzyx/VinXiangQi](https://github.com/Vincentzyx/VinXiangQi)，GPL-3.0），仅复现
    历史对照实验时使用；正式链路请使用 CornerSimCC（`corner_simcc_v1.onnx`）。
 5. 这些文件原属 `com.cabinet.assist` 包，与悬浮窗 UI、引擎通信等服务层解耦干净
    （依赖闭包仅 `Piece.java` + onnxruntime + Android 框架），改包名即可平移。

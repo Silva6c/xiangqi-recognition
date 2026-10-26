@@ -69,7 +69,7 @@ PC 端默认 depth 20 + threads=逻辑核一半(本机 20 核→10 线程),中�
 4s+ 且常被下一手打断(PC 日志 19:36/19:37 两条进引擎局面均 4s+ 无果)。
 
 修复(不动 PC 端 Go 代码,全部配置/默认值层面):
-- configs/cabinet.toml 增加 [engine]:depth=16、threads=16、hash_mb=2048;
+- 产品端 configs 配置 toml 增加 [engine]:depth=16、threads=16、hash_mb=2048;
   重启后日志确认"引擎就绪 threads=16 hash_mb=2048 multi_pv=3 depth=16"。
 - 手机端默认深度档位 20→16(AssistConfig.engineDepth)。
 实测:未命中库局面走子确认→PC 收到→**第一条引擎建议 101ms 到达**(搜索中
@@ -130,11 +130,11 @@ ScreenAssistService 内联回调抽为 SuggestionAggregator(synchronized + @Vola
 
 #### 交付构建
 
-phone/app/build.gradle.kts:新增交付变体 Armv8Dotprod(对齐主工程 Cabinet 交付惯例;
+phone/app/build.gradle.kts:新增交付变体 Armv8Dotprod(对齐主工程交付惯例;
 瘦客户端不含引擎二进制,不收窄 ABI 以兼容模拟器联调)、versionCode = git 提交数
 (git 不可用回退 1)、release 采用 debug 签名保证可直接安装。
 `./gradlew :app:assembleArmv8DotprodRelease` → 仓库根目录
-Cabinet_日期_versionCode_Armv8-dotprod-Release.apk(*.apk 已 gitignore 不进版本库)。
+交付 APK（命名制 `<产品前缀>_日期_versionCode_Armv8-dotprod-Release.apk`,*.apk 已 gitignore 不进版本库）。
 
 ## 换边识别两项缺陷修复(2026-09-29,模拟器实测)
 
@@ -441,7 +441,7 @@ info 流(depth/bestmove 变化即推)高频到达时每条全量重绘悬浮窗�
   "PC接收时刻 [短会话ID] 手机原始行",多设备/多天不混淆;写失败只记调试
   日志绝不影响对局链路
 - 旧端兼容:旧 PC 收 log 帧按协议 §2 静默忽略;旧手机不发该帧
-- PC 端改动已构建进 cabinet.exe(本机自带 MinGW 工具链 .tools/mingw64-extract)
+- PC 端改动已构建进识别服务程序(本机自带 MinGW 工具链 .tools/mingw64-extract)
 - 实测:模拟器走完授权流程,logs/phone/phone-20260930.log 即刻生成,
   启动→ONNX 加载→逐帧识别→pose 复检全链路可见
 

@@ -1,6 +1,6 @@
 # 端上识别核心（Android / Kotlin）
 
-从内阁（Cabinet）App 中抽出的**识别链核心代码**——手机屏上棋盘的实时识别就是这段
+从生产 App 中抽出的**识别链核心代码**——手机屏上棋盘的实时识别就是这段
 代码在跑。以参考实现形式发布：与 `weights/` 三件套配套，可独立接入你自己的 App。
 
 ## 文件与职责
@@ -31,7 +31,7 @@
    训练侧的 CPU 延迟口径见 docs/技术文档.md §8。
 3. **失败语义**：`boxPlausible` 拦截角点输出返回 null——调用方应触发全图重定位而非
    采用错误角点（宁 null 不错点）。
-4. `YoloBoardDetector` 路径需要第三方 RTMPose 模型（**不随本仓库分发**），仅复现
+4. `YoloBoardDetector` 路径需要第三方 YOLOv5 tflite 模型（**不随本仓库分发**），仅复现
    历史对照实验时使用；正式链路请使用 CornerSimCC（`corner_simcc_v1.onnx`）。
 5. 这些文件原属 `com.cabinet.assist` 包，与悬浮窗 UI、引擎通信等服务层解耦干净
    （依赖闭包仅 `Piece.java` + onnxruntime + Android 框架），改包名即可平移。

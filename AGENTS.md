@@ -1,7 +1,7 @@
 # AGENTS.md — xiangqi-recognition 识别引擎（独立项目，agent 入口）
 
 自研中国象棋识别引擎：**GridHead 整板棋子分类 + CornerSimCC 角点定位 + cell_cls 格级联**，
-已从内阁（Cabinet）项目分家独立（GPLv3）。手机端推理核心在 `android/`，训练/评测管线
+独立开源项目（GPLv3）：**https://github.com/Silva6c/xiangqi-recognition**。手机端推理核心在 `android/`，训练/评测管线
 在本仓根目录（Python 脚本平铺，`import` 同目录）。本文件是**任何 agent（ZCode / Codex /
 OpenCode / DeepSeek / 子代理）的冷启动入口**——读完即可接手，不依赖任何历史会话。
 
@@ -17,7 +17,7 @@ OpenCode / DeepSeek / 子代理）的冷启动入口**——读完即可接手�
 
 ## 硬事实（路径 / 环境 / 红线）
 
-### 目录约定（分家后与本仓绑定，勿再引用内阁路径）
+### 目录约定（分家后与本仓绑定，勿再引用原工作目录路径）
 
 | 路径 | 内容 | git |
 |---|---|---|

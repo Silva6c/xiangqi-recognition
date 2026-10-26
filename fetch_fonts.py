@@ -24,7 +24,7 @@ from pathlib import Path
 # 本机代理（来自注册表 ProxyServer 实测，非猜测；仅用于 GitHub 等被墙源）
 PROXY = "http://127.0.0.1:7897"
 GITHUB_API = "https://api.github.com"
-UA = {"User-Agent": "cabinet-font-fetch/1.0"}
+UA = {"User-Agent": "xiangqi-recognition-font-fetch/1.0"}
 
 GOOGLE_FONTS = "https://github.com/google/fonts/raw/main/ofl"
 

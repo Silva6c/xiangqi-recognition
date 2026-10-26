@@ -35,7 +35,7 @@ GEN_HOLDOUT = ["NotoSerifSC-Regular.ttf", "ZCOOLXiaoWei-Regular.ttf", "SourceHan
 
 IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
 IMAGENET_STD = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
-# numpy 版（distill_gen.py 等 CPU 推理路径用）
+# numpy 版（CPU 推理路径用；历史蒸馏生成器已随路线归档移除）
 IM_MEAN_NP = np.array([0.485, 0.456, 0.406], np.float32).reshape(3, 1, 1)
 IM_STD_NP = np.array([0.229, 0.224, 0.225], np.float32).reshape(3, 1, 1)
 
@@ -226,10 +226,6 @@ def main():
     ap.add_argument("--scale-lo", type=float, default=0.94,
                     help="尺度增广下探（v3 用 0.85 覆盖外框错位带）")
     ap.add_argument("--init-from", default="", help="初始权重来源（如 runs/v2/best.pt），仅模型权重")
-    # v9 蒸馏：distill_gen.py 预生成软标签，批尾蒸馏槽 KL 蒸 teacher 失真不变性
-    ap.add_argument("--distill-npz", default="", help="蒸馏集（distill_gen.py 产出）；空=不用")
-    ap.add_argument("--distill-ratio", type=float, default=0.3, help="每批蒸馏样本占比（占批尾）")
-    ap.add_argument("--kl-weight", type=float, default=0.5, help="KL 损失权重（0=纯 CE）")
     # v60 软标签蒸馏：nano logits 挂 real 池帧（--real-npz 按序一一对应），
     # CE(硬标签) + λ·T²·KL(teacher/T ‖ student/T) 仅作用蒸馏帧 valid 格（IGNORE 跳过）。
     # 与 --distill-npz 语义分离（独立批尾槽 vs real 帧双损失），二者互斥。
@@ -355,7 +351,6 @@ def main():
     # v60 软标签蒸馏集：nano logits [N,90,16] fp16，与 real 池按序拼接对齐（帧序=imgs 帧序）
     soft_all_t = None
     if args.distill_soft:
-        assert not args.distill_npz, "--distill-soft 与 --distill-npz 互斥（语义不同的两个槽）"
         assert real_imgs_t is not None, "--distill-soft 需要 --real-npz 池在载（软标签挂在 real 帧上）"
         soft_npzs = [p for p in args.distill_soft.split(",") if p]
         real_npzs_ref = [p for p in args.real_npz.split(",") if p and Path(p).exists()]
@@ -376,18 +371,6 @@ def main():
         assert soft_all_t.shape[0] == real_imgs_t.shape[0], "soft 总帧数与 real 池不一致"
         log(f"软标签蒸馏：{off_s} 帧 nano logits 对齐 real 池"
             f"（T={args.distill_T} λ={args.distill_lambda}，KL 仅 valid 格）")
-
-    # v9 蒸馏集：主进程一次性载入（imgs 12k≈3.2GB，本机 32GB 无压力）。
-    # 批尾 n_d 槽放蒸馏样本（合成全增广 + nano_v3 软标签），KL 蒸 teacher 失真不变性
-    d_imgs_t = d_labs_t = d_probs_t = None
-    if args.distill_npz and args.distill_ratio > 0 and Path(args.distill_npz).exists():
-        z = np.load(args.distill_npz)
-        d_imgs_t = torch.from_numpy(np.ascontiguousarray(z["imgs"]))                     # [N,315,280,3] u8
-        d_labs_t = torch.from_numpy(np.ascontiguousarray(z["labels"].astype(np.int64)))  # [N,90]
-        d_probs_t = torch.from_numpy(np.ascontiguousarray(z["probs"].astype(np.float16)))  # [N,90,16]
-        z.close()
-        log(f"蒸馏集：{d_imgs_t.shape[0]} 样本（{args.distill_npz}），"
-            f"每批占比 {args.distill_ratio:.0%}，KL 权重 {args.kl_weight}")
 
     # 类别权重：空格 0.8，占子 1.6（'x' 训练中不出现，权重无实际作用）
     w = torch.full((NCLASS,), 1.6, device=device)
@@ -562,14 +545,6 @@ def main():
             lab[:n_real] = real_labs_t[idx]
             if soft_all_t is not None:
                 soft_b = soft_all_t[idx]          # v60：real 帧 nano logits 随批同行（CPU fp16）
-        # v9：批尾 n_d 行替换为蒸馏样本；软标签留在 CPU，KL 前再上 GPU
-        #（soft_b 声明已前移到 real 分支前——此处不得重置，会抹掉 v60 赋值）
-        n_d = int(B * args.distill_ratio) if d_imgs_t is not None else 0
-        if n_d:
-            k = torch.randint(0, d_imgs_t.shape[0], (n_d,))
-            u8[B - n_d:] = d_imgs_t[k].permute(0, 3, 1, 2)
-            lab[B - n_d:] = d_labs_t[k]
-            soft_b = d_probs_t[k]
         for g in opt.param_groups:
             g["lr"] = lr_at(step) * g.get("lr_mult", 1.0)
         u8 = u8.to(device, non_blocking=True)
@@ -596,15 +571,7 @@ def main():
                 ce = F.cross_entropy(logits.reshape(-1, NCLASS), lab.reshape(-1),
                                      weight=w, ignore_index=R.IGNORE_LABEL,
                                      label_smoothing=0.05)
-            # v9 蒸馏：批尾蒸馏槽对 teacher 归一化概率做 KL（KL(teacher‖student)）
-            # n_d 前置守卫：v60 模式下 soft_b 也非 None（real 帧 nano logits），防误入
             loss = ce
-            if n_d and soft_b is not None and args.kl_weight > 0:
-                tp = soft_b.to(device).float()
-                tp = tp / tp.sum(dim=-1, keepdim=True).clamp_min(1e-9)
-                logp = F.log_softmax(logits[B - n_d:].float(), dim=2)
-                kl = (tp * (tp.clamp_min(1e-9).log() - logp)).sum(dim=-1).mean()
-                loss = ce + args.kl_weight * kl
             # v60 软标签蒸馏：real 帧 CE+λ·T²·KL（teacher=nano logits/T，仅 valid 格）
             # IGNORE 格跳过（teacher 对遮挡格无教导资格）；T² 补温度缩放的梯度折减
             if soft_all_t is not None and args.distill_lambda > 0:

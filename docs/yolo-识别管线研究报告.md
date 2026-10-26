@@ -4,7 +4,7 @@
 
 ## 一、结论先行
 
-1. **识别全部在手机端**：录屏帧 → 手机识别引擎 → FEN 上行 PC。PC 端（cabinet.exe）`grep yolo|onnx` 零命中，PC 不参与像素识别。
+1. **识别全部在手机端**：录屏帧 → 手机识别引擎 → FEN 上行 PC。PC 端（识别服务程序）`grep yolo|onnx` 零命中，PC 不参与像素识别。
 2. **默认链路上 YOLO 确实被架空（证据强度：高）**：出厂默认引擎是 ONNX 双模型（`AssistConfig.recognizerEngine = "onnx"`），YOLO 仅在两处入口被调用——用户在主页手动切到"YOLO 检测式"、或 ONNX 加载失败自动回退。正常用户永远不会触达 YOLO 推理。
 3. **您看到"cnvcs 象棋被识别成功"，干活的其实是 ONNX，不是 YOLO**。这个困惑的根源是把两个并行引擎混为一谈："别人的引擎"（onnxruntime + RTMPose 角点 + Swin 分类，移植自 GPL 上游 chinese-chess-helper，已获作者许可）才是识别主力。（2026-10-03 勘误：YOLO 模型与解码/映射代码来自**另一个**上游 Vincentzyx/VinXiangQi，与 chinese-chess-helper 无关——两个引擎两个上游，初版报告未区分，来源表见第二节。）
 4. **YOLO 本身也能识别 cnvcs**（实测 `dets=33 pieces=32 avg=0.93`）——但即便它不行也不影响默认链路。

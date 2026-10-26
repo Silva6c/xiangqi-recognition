@@ -848,17 +848,6 @@ def jpeg_roundtrip(img: np.ndarray, rng: random.Random) -> np.ndarray:
 # ==================== 样本产出（分类输入 + 标注） ====================
 GRID_SRC = np.array([[50, 50], [400, 50], [400, 450], [50, 450]], np.float32)
 
-def warp_back_to_warp450(screen_bgr: np.ndarray, quad: np.ndarray, rng: random.Random,
-                         corner_jitter: bool = True) -> np.ndarray:
-    """整屏帧 → warp 空间 450×500 BGR（复刻端上单应采样；corner_jitter 模拟 RTMPose 定位误差）"""
-    q = quad.astype(np.float32).copy()
-    if corner_jitter:
-        sigma = rng.choices([2.0, 4.0, 8.0], weights=[0.6, 0.3, 0.1])[0]
-        q = q + np.array([[rng.gauss(0, sigma), rng.gauss(0, sigma)] for _ in range(4)], np.float32)
-    H = cv2.getPerspectiveTransform(q, GRID_SRC)
-    return cv2.warpPerspective(screen_bgr, H, (WARP_W, WARP_H),
-                               flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-
 def warp450_to_cls(warp450_bgr: np.ndarray) -> np.ndarray:
     """450×500 → 中心裁 400×450 → 缩放 280×315 RGB（端上 classifyCells 的裁剪缩放链）"""
     crop = warp450_bgr[25:475, 25:425]

@@ -31,7 +31,7 @@ def main():
     print(f"v67 四角: {det.astype(int).tolist()}")
     print(f"v4 GT : {gt.astype(int).tolist()}")
     print(f"四角距离 px: {dist.round(1).tolist()}  平均 {dist.mean():.1f}")
-    print(f"v67 QQ 基准: {'PASS' if dist.mean() <= 6.0 else 'FAIL'}（判线 ≤6px 平均）")
+    print(f"QQ 基准: {'PASS' if dist.mean() <= 6.0 else 'FAIL'}（判线 ≤6px 平均）")
     vis = img.copy()
     cv2.polylines(vis, [gt.astype(np.int32)], True, (255, 0, 0), 5)      # 蓝=v4 GT
     cv2.polylines(vis, [det.astype(np.int32)], True, (0, 0, 255), 3)     # 红=v67

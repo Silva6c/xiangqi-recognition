@@ -42,7 +42,8 @@
       "op": "<=",
       "target": 3,
       "baseline": "v4=3 / v6=0",
-      "required": true
+      "required": true,
+      "note": "历史数字（v4=3/v67=5/v68=5）为旧工具链口径；本仓 eval_nano17 工具基线漂移约 +4~6（同 v4 权重实测 9/17）。跨版本对账必须用同一工具重测 v4 作锚。"
     },
     {
       "id": "J5",

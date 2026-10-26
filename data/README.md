@@ -6,10 +6,10 @@
 ## 落位状态（2026-10-27）
 
 **本机 data/ 已全量落位并核对**：评测底片+训练池 36.5GB（recog/data 平移）、
-roboflow_raw 1.1GB、corner 系池 202MB（data/pools/）、fonts 629MB、
+roboflow_raw 1.3GB、corner 系池 202MB（data/pools/）、fonts 629MB、
 外部底片 external 180MB、QQ 基准图 data/qq_basis/。完整性指纹
 [docs/data-pools-sha256.txt](../docs/data-pools-sha256.txt)（141 项全对）。
-原工作目录副本已按指纹核对后清除——**本目录是唯一副本，谨慎对待**。
+原工作目录副本已按指纹核对后清除。指纹表条目前缀映射：`.cache/xxx` → 本仓 `data/pools/xxx` 或 `data/xxx`，`data/xxx` → 平铺同名——**本目录是唯一副本，谨慎对待**。
 真实帧（real_frames/vid_frames）含录屏画面，仅本机训练自用，严禁分发。
 
 ## 目录布局

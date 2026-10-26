@@ -151,3 +151,5 @@ f7011ddfdb799835cf3e8a29f94007ef1b463b311b8e17a6ac3c4b3e1f8329e3  data/real_rf_p
 # ctx_v37.json ctx_v38a.json（历史上下文转储）export_report.json nano17_eval.json（评测输出）
 # 注：corner_qq_basis.npz 为仓内重建版（files 指向 data/qq_basis/，corners GT 与源逐元素相等），
 # 副本指纹 8aa71266040e161e5ab75f2c3fab9007905e4623fbd9b1093d56f0d63ddf0be8（源版指纹条目以此为准更新）
+# 注：corner_pseudo_eval.json 为评测输出（随每轮评测更新），当前为 v68 轮归档版
+# （7a05469a…），表内条目为 v67 轮历史值——评测输出类不适用静态指纹，见文件头声明。

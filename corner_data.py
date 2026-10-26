@@ -37,6 +37,7 @@ from cell_model import CELL_IN  # noqa: F401  （保持与 cell 系同源习惯�
 from corner_model import CORNER_IN, NPK, quad_to_gt  # noqa: F401
 from pose_corner import IMAGENET_MEAN, IMAGENET_STD, corner_affine
 
+HERE = Path(__file__).resolve().parent  # 仓库根（脚本平铺）
 SCREEN = (1080, 2280)  # 与 screen30 考卷同屏（端上竖屏分布；照片域宽高比由真实源覆盖）
 ORNATE_P = 0.35        # ornate 宽框形态占比（QQ 象棋域对症，v67）
 
@@ -359,6 +360,8 @@ class RealPool:
             # 池内 files 可能带历史前缀 ..\..\.cache（原工作目录约定，斜杠随 OS）
             # → 统一映射到本仓 data/（与 corner_eval_pseudo 同款归一）
             rel = str(self.files[i]).replace("\\", "/").replace("../../.cache", "data")
+            if "cabinet/phone/.cache/" in rel:   # 历史绝对路径（vid 域 26 帧）→ data/ 映射
+                rel = "data/" + rel.split("cabinet/phone/.cache/", 1)[1]
             self._cache[i] = imread_cn(self.root / rel)
         return self._cache[i], self.corners[i]
 
@@ -481,4 +484,4 @@ if __name__ == "__main__":
     print("已存 data/reports/corner_smoke_ornate.png（原图域，目检宽框/头像面板/GT 对位）")
     xn, pn, rn = prep_input(make_negative_frame(rng), None)
     print("负样本:", xn.shape, "box:", pn, "res:", rn)
-    print("已存 .cache/corner_smoke_render.png 略（v67 轮已目检）")
+    print("负样本管线 OK（v67 轮已目检渲染可视化）")

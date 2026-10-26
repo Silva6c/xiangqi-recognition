@@ -82,7 +82,7 @@ python corner_train.py --run-name <名> --steps 600 --batch 256 --lr 5e-3 --work
 python corner_accept.py --pt runs/<名>/best.pt --judges judges/corner_v68.json
 
 # 3) r3 系一键训练（配方库 presets/v35~v66）
-python pipeline.py --preset v66 --run-name v66 --baseline runs/v60/auto_summary.json
+python pipeline.py --preset v66 --run-name v66   # 首跑无上轮产物可省略 --baseline
 
 # 4) 评测五套考卷
 python eval_human26.py weights/gridhead_fp32.onnx

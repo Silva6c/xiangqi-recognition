@@ -383,7 +383,8 @@ class OnnxBoardRecognizer(
                 val ty = results.get(outNames[1]).get() as OnnxTensor
                 val arrX = drain(tx.floatBuffer, simccX); simccX = arrX
                 val arrY = drain(ty.floatBuffer, simccY); simccY = arrY
-                val heads = if (tx.shape.size > 1) tx.shape[1].toInt() else 4
+                // 每头分布数 = x 头展平长度 / bins（4 分布=2048，7 分布=3584）
+                val heads = arrX.size / (POSE_INPUT * 2)
                 val kps = if (heads == 7) {
                     // box6 解码 + 结构护栏（对边平行由构造保证；护栏拒绝=定位不可信）
                     OnnxGeom.boxDecode(arrX, arrY, POSE_INPUT) ?: run {

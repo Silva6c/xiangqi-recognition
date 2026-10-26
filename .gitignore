@@ -1,5 +1,5 @@
+# 数据与产物（不入 git；重建/落位见 data/README.md）
 fonts/
-data/
 runs/
 .cache/
 __pycache__/
@@ -8,7 +8,8 @@ __pycache__/
 *.pt
 *.onnx
 !weights/*.onnx
-# data/README.md 是重建指引文档，必须入库
-!data/
-!data/README.md
 *.tflite
+# data/ 整体忽略，仅放行重建指引文档
+data/*
+!data/README.md
+# 历史误挂豁免修正：data/README.md 必须可跟踪（上面 data/* 后单行放行，勿用 !data/ 整目录放开）

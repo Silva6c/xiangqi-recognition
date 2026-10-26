@@ -11,10 +11,6 @@ df5005dd26eb382aca306e507c6ddbd3087d4cb7c2361ad120471e50f18beb88  .cache/corner_
 054efb0653d43b6bc0ced401fe9302b78479c2ddcefd4e707cd8c3efb5b8f96d  .cache/corner_vid_pseudo.npz  0.0MB
 b901c8126e3107bd452b8e7f048a12de6fffb094f7e90644334703f5e9513859  .cache/corner_excl.json  0.0MB
 876b8c06d59df19f829c515ce05c15abbd1130bb7aebefde90f8db1729d100e2  .cache/corner_pseudo_eval.json  0.0MB
-db4e34eae07690fa75d95e385de6f016565393936db65a86a0484f6238bc49d6  .cache/ctx_v37.json  0.0MB
-7fe6a37423bb6b1ff0a2b09657c34f130bf3021b45b7a145b8ba27c773560210  .cache/ctx_v38a.json  0.0MB
-f91cd29a6f1a017da949aa2eb323f606bda5cf6fe4442f6388e41c8c9c5c7f3a  .cache/export_report.json  0.0MB
-23d2a9733db241b9a40d2ec1b7cbb87b6b467afc718b5e7f247a2e2b79a1b5b5  .cache/nano17_eval.json  0.0MB
 94d73d261459ece695e97c5887ffa7fd0461eedcac5c1fb6908209699a967b2a  .cache/nano17_truth.json  0.0MB
 068e819466033cd717db9388aa8d730f39603d9e07b98bafad52242c048b6367  .cache/nano_pseudo_probe.json  0.0MB
 97aad482b2fb28e75167dbfcd97662ff00e7b6a4f51021aeb59539b677c1ecd1  data/bench_hot_transplant.npz  1111.8MB
@@ -150,3 +146,6 @@ a7dd50b44d93639fecceaad75b4e6a5c87fb587aa6e84d62f42cfe5bb20ffade  data/real_rf_p
 f7011ddfdb799835cf3e8a29f94007ef1b463b311b8e17a6ac3c4b3e1f8329e3  data/real_rf_patch_transplant_v45_meta.json  0.0MB
 2d10e6617a65c277018651c42c750c8a719d32268e436bd5626f36ac6915f125  data/real_rf_patch_transplant_v47_meta.json  0.0MB
 3ad791ba8427e537c9b4823bc5d86b795562d1bf544bdb8996323bd1a798f759  data/tta_baseline.json  0.0MB
+
+# 以下 4 项为会话/评测运行产物（非数据资产），运行时自动重生，不入指纹：
+# ctx_v37.json ctx_v38a.json（历史上下文转储）export_report.json nano17_eval.json（评测输出）

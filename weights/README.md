@@ -6,7 +6,7 @@
 | 文件 | 模型 | 体积 | md5 | 输入 | 输出 |
 |---|---|---|---|---|---|
 | `gridhead_fp32.onnx` | GridHead 整板识别（r3_w085） | 11.7MB | e4746ecc171a11bd8bf7f51211e14c2b | [1,3,315,280]（RGB，ImageNet 归一化） | [1,90,15] logits |
-| `corner_simcc_v1.onnx` | CornerSimCC 角点定位（**v6 权重**，文件名沿用部署名 v1） | 2.5MB | 7ea38479933a699b269684c2263f3645 | [1,3,256,256]（RGB，ImageNet 归一化） | x/y 两个 [1,4,512] 分布（按序取 [0]=x [1]=y） |
+| `corner_simcc_v1.onnx` | CornerSimCC 角点定位（**v4 权重**，文件名沿用部署名 v1） | 2.5MB | d58556bec013f9b19bc9643ff85f72fc | [1,3,256,256]（RGB，ImageNet 归一化） | x/y 两个 [1,4,512] 分布（按序取 [0]=x [1]=y） |
 | `cell_cls_fp32.onnx` | cell_cls 格级精分类 | 0.6MB | 48d9e7a2c154335365cf757bd900d102 | [90,3,48,48]（RGB /255） | [90,15] logits |
 
 ## 推理管线要点

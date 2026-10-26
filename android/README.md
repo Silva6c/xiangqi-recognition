@@ -8,7 +8,7 @@
 | 文件 | 职责 |
 |---|---|
 | `src/com/cabinet/assist/OnnxBoardRecognizer.kt` | 识别入口：角点模型 → 透视校正 → GridHead → 级联 → 朝向正则 的完整编排（含模型会话管理、A/B 开关） |
-| `src/com/cabinet/assist/OnnxGeom.kt` | 几何原语：affine 窗、simccKeypoints 解码、`boxPlausible` 质量门、warp450 |
+| `src/com/cabinet/assist/OnnxGeom.kt` | 几何原语：affine 窗、simccKeypoints 解码（v4 现役 [1,4,512] 契约）、`boxPlausible` 质量门、boxDecode（v67/v68 box 参数化实验线 [1,3,512]→[1,7,512] 契约+结构护栏）、warp450 |
 | `src/com/cabinet/assist/CellCascade.kt` | 四通道级联仲裁（低置信门控/冲突采纳/子数校验/对换家族） |
 | `src/com/cabinet/assist/DetectionBoardMapper.kt` | 帅/将行位朝向判定 + 180° 点镜像正则化 |
 | `src/com/cabinet/assist/RecognitionTypes.kt` | 识别结果数据类型 |

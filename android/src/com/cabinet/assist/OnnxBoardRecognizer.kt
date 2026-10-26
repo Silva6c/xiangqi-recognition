@@ -28,14 +28,13 @@ import java.nio.FloatBuffer
 class OnnxBoardRecognizer(
     private val assets: AssetManager,
     private val profiling: Boolean = false,
-    /** 分类模型覆盖（v45 部署切换，docs/v45部署切换单方案-20261018.md）：
-     *  默认 nano（现网行为不变）；gridhead 走 CLS_MODEL_GRIDHEAD（A/B 开关 AssistConfig.clsEngine）。
-     *  契约核对（2026-10-18）：输入/预处理/输出布局/类序与 nano 完全一致，解码零改动。 */
-    private val clsModel: String = CLS_MODEL_NANO,
-    /** v63 两级引擎：cell_cls 级联仲裁开关（AssistConfig.cascadeEnabled，默认关待 A/B） */
-    private val cascadeEnabled: Boolean = false,
-    /** v64 角点模型覆盖：默认 RTMPose（现网行为不变）；自研走 POSE_MODEL_SELF
-     *  （AssistConfig.poseEngine A/B 开关）。窗语义与模型绑定（见 poseAffine）。 */
+    /** 分类模型覆盖（v45 A/B 引入）：**v66 国产化定版默认 gridhead fp32**（历史值 nano
+     *  已由 AssistConfig getter 迁移，assets 已删 nano_v3）。契约与 nano 完全一致，解码零改动。 */
+    private val clsModel: String = CLS_MODEL_GRIDHEAD,
+    /** v63 两级引擎：cell_cls 级联仲裁开关（AssistConfig.cascadeEnabled，v66 国产化默认开） */
+    private val cascadeEnabled: Boolean = true,
+    /** v64 角点模型覆盖：**v66 国产化定版默认 corner**（CornerSimCC 长边方形窗，窗语义
+     *  与模型绑定见 poseAffine）；历史值 rtmpose 已由 getter 迁移，assets 已删 4_v6-0301。 */
     private val poseModel: String = POSE_MODEL,
 ) {
 
@@ -44,14 +43,17 @@ class OnnxBoardRecognizer(
 
         private const val POSE_INPUT = 256
         private const val POSE_PADDING = 1.25f
-        /** 现网角点模型（CCH RTMPose，行为基线） */
+        /** 历史基线（CCH RTMPose）；v66 国产化已从 assets 删除，常量仅供考古/编译 */
         const val POSE_MODEL_DEFAULT = "models/4_v6-0301.onnx"
-        private val POSE_MODEL = POSE_MODEL_DEFAULT
-        /** v64 自研角点（CornerSimCC，633K/2.5MB；screen30 环1 30/30 vs RTMPose 17/30）。
-         *  输入/输出张量与解码契约同构（simcc_x/simcc_y [1,4,512]，argmax/512×256），
-         *  差异仅窗语义（poseAffine 长边方形窗）——RTMPose 旧窗在竖屏大棋盘（bh≥0.59 屏高）
-         *  必然半盘出窗（screen30 30 帧中 27 帧），详见 docs/v64方案-自研角点定位模型替换RTMPose-20261025.md §二 */
+        /** v64 起自研角点（现役 v67 box 参数化：双头 [1,3,512]→box6→c±u±v 四角，
+         *  OnnxGeom.boxDecode 解码+结构护栏；screen30 环1 30/30 vs RTMPose 17/30，
+         *  QQ ornate 域 v6 塌缩事故对症，docs/v67方案-角点边缘化重设计-20261026.md）。
+         *  输入契约同（长边方形窗 poseAffine）；差异仅输出解码（simccKeypoints→boxDecode）。
+         *  【雷区】新旧模型输出形状不同（[1,4,512] vs [1,3,512]）——assets 里的
+         *  corner_simcc_v1.onnx 必须与 boxDecode 原子替换，旧 4 角点模型加载后解码错位。 */
         const val POSE_MODEL_SELF = "models/corner_simcc_v1.onnx"
+        /** v66 国产化定版：默认=自研 CornerSimCC（长边方形窗语义绑定，见 poseAffine） */
+        private val POSE_MODEL = POSE_MODEL_SELF
         /** 现网分类模型（CCH nano，行为基线） */
         const val CLS_MODEL_NANO = "models/nano_v3-0319.onnx"
         /** v63 定稿：自研 GridHead fp32（r3_w085，26 帧 2+bench 10/10；int8 砍除=量化+13 错不抵体积/速度冗余收益） */
@@ -372,13 +374,17 @@ class OnnxBoardRecognizer(
         OnnxTensor.createTensor(ortEnv, poseInputBuf,
             longArrayOf(1, 3, POSE_INPUT.toLong(), POSE_INPUT.toLong())).use { tensor ->
             session.run(mapOf(poseInputName to tensor)).use { results ->
-                // 输出两个张量 simcc_x / simcc_y，形状 [1,4,512]（Result.get 返回 Optional，需再解包）
+                // v67：输出两个张量 box 双头，形状各 [1,3,512]（x 头 cx/ux/vx，y 头 cy/uy/vy）
                 val outNames = poseOutputNames.ifEmpty { session.outputNames.toList() }
                 val tx = results.get(outNames[0]).get() as OnnxTensor
                 val ty = results.get(outNames[1]).get() as OnnxTensor
                 val arrX = drain(tx.floatBuffer, simccX); simccX = arrX
                 val arrY = drain(ty.floatBuffer, simccY); simccY = arrY
-                val kps = OnnxGeom.simccKeypoints(arrX, arrY, 4, POSE_INPUT)
+                // box6 解码 + 结构护栏（对边平行由构造保证；护栏拒绝=定位不可信）
+                val kps = OnnxGeom.boxDecode(arrX, arrY, POSE_INPUT) ?: run {
+                    if (profiling) tPoseRun += System.nanoTime() - t
+                    return null
+                }
                 // warp 空间坐标逐点逆仿射回原图
                 val inv = OnnxGeom.invertAffine(m)
                 val out = FloatArray(8)

@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
-"""角点模型训练数据工厂（v64）。
+"""角点模型训练数据工厂（v64 → v67 边缘化重设计）。
 
 三源混合（CellFeeder 线程化骨架：2 worker 预取 + queue）：
   A. 渲染整屏源（主力）：corner_place（gen_screen30.place_board_fullframe 几何族
-     加宽版：±18°/占比 0.50~0.90/透视 0~0.06，种子独立于考卷 20261025 体系），
-     GT=渲染自证（解析角点，零标注）。一盘 flat 多次贴放（几何/背景/遮挡逐帧重采）
-     摊薄渲染成本。
-  B. 真实源（第 1 波注入）：RTMPose 伪标签帧（.cache/corner_pseudo.npz，
-     排除清单见 pseudo_label 脚本），按需读图 + 同构 affine。
-  C. 负样本（~8%）：合成"无棋盘"整屏（渐变/单色背景 + 界面色块 + 非棋盘比例细网格），
-     target=均匀分布——教模型压平峰值，由端上质量门/boxPlausible 拦截。
+     加宽版：±35°/占比 0.30~0.90/透视 0~0.48，种子独立于考卷 20261025 体系），
+     GT=渲染自证（解析四角 → box6 参数，零标注）。一盘 flat 多次贴放（几何/背景/
+     遮挡逐帧重采）摊薄渲染成本。
+     v67 新增 ornate 分支（~35%）：宽木框包裹（3D 凸起 bevel 光影/木纹/装饰内线）
+     + 概率顶部头像/昵称面板（QQ 象棋布局语义）——对症 QQ ornate 域 v6 塌缩事故。
+  B. 真实源（第 1 波注入）：RTMPose 伪标签帧（.cache/corner_pseudo.npz），
+     按需读图 + 同构 affine；加载时平行四边形残差闸预过滤（box 参数化只覆盖
+     平行四边形族，残差大的透视帧剔除）。
+  C. 负样本（~8%）：合成"无棋盘"整屏（渐变/单色背景 + 界面色块 + 非棋盘比例
+     细网格），target=均匀分布——教模型压平峰值，由端上质量门/护栏拦截。
 
-输入构造与端上逐项同构：pose_affine(w,h)（帧宽×1.25 中心方形，pose_corner.py 与
-OnnxBoardRecognizer.poseAffine 逐项对齐的实现）→ 256×256 越界补黑；角点 GT 同仿射
-进 256 空间。本模块角点序一律 [TL,TR,BL,BR]（模型/端上序；place 返回 TL,TR,BR,BL
-需转序）。
+输入构造与端上逐项同构：pose_affine(w,h)（长边方形窗）→ 256×256 越界补黑；
+四角 GT 同仿射进 256 空间 → box6 (cx,cy,ux,uy,vx,vy)（corner_model 域常量）。
+本模块四角序一律 [TL,TR,BL,BR]（模型/端上序；place 返回 TL,TR,BR,BL 需转序）。
 
 红线：GEN_HOLDOUT 3 字体剔除；eval_* npz / screen30_v1（seed 20261025）永不入训
 （渲染源用独立随机种子体系，与考卷种子空间不相交）。
@@ -32,10 +34,11 @@ import torch
 import renderer as R
 from cell_data import GEN_HOLDOUT
 from cell_model import CELL_IN  # noqa: F401  （保持与 cell 系同源习惯）
-from corner_model import CORNER_IN, NKP
+from corner_model import CORNER_IN, NPK, quad_to_gt  # noqa: F401
 from pose_corner import IMAGENET_MEAN, IMAGENET_STD, corner_affine
 
 SCREEN = (1080, 2280)  # 与 screen30 考卷同屏（端上竖屏分布；照片域宽高比由真实源覆盖）
+ORNATE_P = 0.35        # ornate 宽框形态占比（QQ 象棋域对症，v67）
 
 
 def imread_cn(path):
@@ -46,6 +49,60 @@ def imread_cn(path):
 
 
 # ---------------- 整屏贴放（gen_screen30 几何族加宽版） ----------------
+
+def _ornate_wrap(flat_rgba, rng):
+    """flat（RGBA ndarray，SS 空间 900×1000）→ ornate 宽框包裹版 (canvas, ox, oy)。
+
+    QQ 象棋 ornate 域对症（v67）：格网外再包一层宽木框——3D 凸起 bevel 光影
+    （顶/左亮、底/右暗）、木纹横纹、装饰内线；概率 0.5 顶部再加头像/昵称面板
+    （QQ 布局语义：面板贴板顶）。ox/oy = flat 原点在 canvas 中的偏移（SS 空间）。
+    GT 格网角 = 原 flat 内位置 + 偏移，解析自证不变。
+    """
+    SS = R.SS
+    d = rng.randint(14, 70) * SS                       # 框宽（warp 空间 14~70px）
+    has_panel = rng.random() < 0.5
+    dp = rng.randint(36, 90) * SS if has_panel else 0  # 顶部面板高（warp 36~90px）
+    h, w = flat_rgba.shape[:2]
+    W2, H2 = w + 2 * d, h + 2 * d + dp
+    # 暖木色底（BGR：红高绿中蓝低）
+    wood = np.array((rng.randint(50, 110), rng.randint(80, 150), rng.randint(130, 205)), np.uint8)
+    bgr = np.empty((H2, W2, 3), np.uint8)
+    bgr[:] = wood
+    # 木纹：随机横向暗/亮条纹
+    for _ in range(rng.randint(6, 14)):
+        y = rng.randint(0, H2 - 1)
+        col = np.clip(wood.astype(np.int32) + rng.randint(-20, 20), 0, 255).astype(np.uint8)
+        cv2.line(bgr, (0, y), (W2 - 1, y), col.tolist(), rng.randint(1, 3))
+    # 放入原 flat（含其自带 alpha，边缘带 50px 原框保留——两层框嵌套与真实 ornate 一致）
+    flat_bgr = cv2.cvtColor(flat_rgba, cv2.COLOR_RGBA2BGRA)[..., :3]
+    flat_a = flat_rgba[..., 3:4].astype(np.int32)
+    roi = bgr[d + dp:d + dp + h, d:d + w].astype(np.int32)
+    bgr[d + dp:d + dp + h, d:d + w] = (
+        (roi * (255 - flat_a) + flat_bgr.astype(np.int32) * flat_a + 127) // 255).astype(np.uint8)
+    # 3D 凸起 bevel：顶/左亮、底/右暗
+    bevel = rng.randint(2, 5) * SS
+    bright = tuple(int(c) for c in np.clip(wood + rng.randint(40, 70), 0, 255))
+    dark = tuple(int(c) for c in np.clip(wood.astype(np.int32) - rng.randint(40, 70), 0, 255))
+    cv2.line(bgr, (0, 0), (W2 - 1, 0), bright, bevel)
+    cv2.line(bgr, (0, 0), (0, H2 - 1), bright, bevel)
+    cv2.line(bgr, (0, H2 - bevel), (W2 - 1, H2 - bevel), dark, bevel)
+    cv2.line(bgr, (W2 - bevel, 0), (W2 - bevel, H2 - 1), dark, bevel)
+    # 装饰内线（框带中线一圈深色细框）
+    m = d // 2 + dp
+    cv2.rectangle(bgr, (m, m), (W2 - 1 - m, H2 - 1 - m), dark, SS)
+    if has_panel:  # 顶部头像/昵称面板（QQ 布局：面板贴板顶）
+        panel = tuple(rng.randint(25, 70) for _ in range(3))
+        cv2.rectangle(bgr, (0, d), (W2, d + dp), panel, -1)
+        r = dp // 3
+        for cxp in (W2 // 6, W2 * 5 // 6):  # 两个圆形头像
+            av = tuple(rng.randint(60, 230) for _ in range(3))
+            cv2.circle(bgr, (cxp, d + dp // 2), r, av, -1)
+            cv2.circle(bgr, (cxp, d + dp // 2), r, tuple(min(255, c + 40) for c in av), max(1, SS))
+        cv2.rectangle(bgr, (W2 // 3, d + dp // 3), (W2 * 2 // 3, d + 2 * dp // 3),
+                      tuple(rng.randint(120, 230) for _ in range(3)), -1)  # 昵称条
+    canvas = np.dstack([bgr, np.full((H2, W2, 1), 255, np.uint8)])
+    return canvas, d, d + dp
+
 
 def corner_place(flat, rng, rot_max=35.0, bh_lo=0.30, bh_hi=0.90, kst_max=0.48):
     """flat（900×1000 RGBA，含 50px 木框）→ 1080×2280 整屏 + 网格四角 GT。
@@ -60,7 +117,13 @@ def corner_place(flat, rng, rot_max=35.0, bh_lo=0.30, bh_hi=0.90, kst_max=0.48):
     v4 域（定位 1~2cm 偏→warp 切格歪→识别崩），继续加宽斜拍形态。
     v6 修订：kst 0.55→0.48 折中——v5 加宽挤压效应（7/8 号 ok→FAIL、screen30 环3
     92→96），回撤一档求"保 11/12/16 救回+回收 7/8+缓仿真退步"两全。
+    v67 修订：~35% 概率先经 _ornate_wrap 包宽木框/头像面板再贴放（ornate 域对症）。
     """
+    SS = R.SS
+    flat_rgba = np.array(flat) if not isinstance(flat, np.ndarray) else flat
+    ox = oy = 0
+    if rng.random() < ORNATE_P:
+        flat_rgba, ox, oy = _ornate_wrap(flat_rgba, rng)   # 偏移 = 格网平移量（SS 空间）
     grid_w, grid_h = 350.0, 400.0
     bh = SCREEN[1] * rng.uniform(bh_lo, bh_hi)
     bw = bh * grid_w / grid_h
@@ -84,23 +147,24 @@ def corner_place(flat, rng, rot_max=35.0, bh_lo=0.30, bh_hi=0.90, kst_max=0.48):
     cy0 = rng.uniform(aabb_h / 2 + 10, SCREEN[1] - aabb_h / 2 - 10)
     quad = quad_rot + np.array([cx0, cy0], np.float32)   # [TL,TR,BR,BL]
 
-    SS = R.SS
-    src_grid = np.array([[50, 50], [400, 50], [400, 450], [50, 450]], np.float32) * SS
+    CH, CW = flat_rgba.shape[:2]                          # canvas 尺寸（SS 空间）
+    src_grid = (np.array([[50, 50], [400, 50], [400, 450], [50, 450]], np.float32) * SS
+                + np.array([ox, oy], np.float32))
     Hm = cv2.getPerspectiveTransform(src_grid, quad.astype(np.float32))
 
     def apply_h(px_, py_):
         v = Hm @ np.array([px_, py_, 1.0], np.float64)
         return [v[0] / v[2], v[1] / v[2]]
 
-    dst_canvas = np.array([apply_h(0, 0), apply_h(900.0, 0),
-                           apply_h(900.0, 1000.0), apply_h(0, 1000.0)], np.float32)
+    dst_canvas = np.array([apply_h(0, 0), apply_h(float(CW), 0),
+                           apply_h(float(CW), float(CH)), apply_h(0, float(CH))], np.float32)
     # 局部 warp（棋盘 AABB clip 屏内）+ 贴背景，代替全屏 warpPerspective（渲染提速主项）
     x0 = max(int(np.floor(dst_canvas[:, 0].min())) - 4, 0)
     x1 = min(int(np.ceil(dst_canvas[:, 0].max())) + 4, SCREEN[0])
     y0 = max(int(np.floor(dst_canvas[:, 1].min())) - 4, 0)
     y1 = min(int(np.ceil(dst_canvas[:, 1].max())) + 4, SCREEN[1])
     H_canvas = cv2.getPerspectiveTransform(
-        np.array([[0, 0], [900.0, 0], [900.0, 1000.0], [0, 1000.0]], np.float32),
+        np.array([[0, 0], [float(CW), 0], [float(CW), float(CH)], [0, float(CH)]], np.float32),
         (dst_canvas - np.array([x0, y0], np.float32)).astype(np.float32))
 
     # 背景（uint8 直算，免 float32 全屏 28MB 分配——渲染提速主项之二）：
@@ -139,7 +203,7 @@ def corner_place(flat, rng, rot_max=35.0, bh_lo=0.30, bh_hi=0.90, kst_max=0.48):
             for _ in range(rng.randint(1, 3)):    # 头像圆
                 cv2.circle(out, (rng.randint(0, SCREEN[0]), rng.randint(0, SCREEN[1] // 3)),
                            rng.randint(30, 70), ui_color(), -1)
-    flat_bgra = cv2.cvtColor(np.array(flat), cv2.COLOR_RGBA2BGRA)
+    flat_bgra = cv2.cvtColor(flat_rgba, cv2.COLOR_RGBA2BGRA)
     warped = cv2.warpPerspective(flat_bgra, H_canvas, (x1 - x0, y1 - y0),
                                  flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT,
                                  borderValue=(0, 0, 0, 0))
@@ -211,11 +275,11 @@ def make_negative_frame(rng):
 
 def prep_input(canvas_bgr, quad_tl_tr_bl_br, rng=None):
     """整屏 BGR + 角点（模型序 [TL,TR,BL,BR] 原图坐标，None=负样本）
-    → (x [3,256,256] float32 已归一化, pts [4,2] float32 256 空间 或 None)。
+    → (x [3,256,256] float32 已归一化, box [6] 或 None, res [8] 或 None)。
 
-    与端上链路逐项同构：corner_affine（长边方形窗，v64 新语义——全帧必然覆盖，
-    旧 1.25 宽窗在竖屏大棋盘下必然半盘出窗）→ warpAffine 256×256 越界补黑 →
-    RGB/255 → ImageNet mean/std。rng 给定时施加光度增广（256 域）。
+    与端上链路逐项同构：corner_affine（长边方形窗）→ warpAffine 256×256 越界
+    补黑 → RGB/255 → ImageNet mean/std。rng 给定时施加光度增广（256 域）。
+    v68：四角 GT 仿射到 256 空间后 → (box6 平行四边形拟合, res8 透视残差)。
     """
     h, w = canvas_bgr.shape[:2]
     M = corner_affine(w, h)
@@ -226,9 +290,11 @@ def prep_input(canvas_bgr, quad_tl_tr_bl_br, rng=None):
     rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
     x = (rgb.transpose(2, 0, 1) - IMAGENET_MEAN.reshape(3, 1, 1)) / IMAGENET_STD.reshape(3, 1, 1)
     if quad_tl_tr_bl_br is None:
-        return np.ascontiguousarray(x, np.float32), None
-    q = np.asarray(quad_tl_tr_bl_br, np.float32) @ M[:, :2].T + M[:, 2]
-    return np.ascontiguousarray(x, np.float32), q.astype(np.float32)
+        return np.ascontiguousarray(x, np.float32), None, None
+    q = (np.asarray(quad_tl_tr_bl_br, np.float32) @ M[:, :2].T + M[:, 2]).reshape(1, 4, 2)
+    box, res = quad_to_gt(q)
+    return (np.ascontiguousarray(x, np.float32),
+            box[0].astype(np.float32), res[0].astype(np.float32))
 
 
 def _augment256(img_bgr, rng):
@@ -255,17 +321,31 @@ class RealPool:
 
     生成脚本 pseudo_label_corner.py 负责 RTMPose 现跑 + boxPlausible 过滤 +
     评测源底片排除清单（eval_photo_*/eval_bench 的 files 全量对照）。
+    v67：平行四边形残差闸（box6 只覆盖平行四边形族）。
+    v68：闸 3.5%→20%——残差头（c±u±v+clamp(res,±8px@256)）吸收非平行残差后，
+    强透视帧可入训（残差统计：20% 闸内 99.9% 帧残差 <8px@256 无损），
+    真实监督 1285→1624 帧；强透视形态回炉治 nano17 定位失败反弹（归因④）。
     """
+
+    PARA_REL_MAX = 0.20  # |TL+BR-TR-BL| / 对角线长 上限（v68 放宽，残差头兜底）
 
     def __init__(self, npz_path, root=".", split="train"):
         d = np.load(npz_path, allow_pickle=True)
         if "split" in d.files and split:
             keep = d["split"] == split
-            self.files = [str(f) for f, k in zip(d["files"], keep) if k]
-            self.corners = d["corners"][keep]
+            files = [str(f) for f, k in zip(d["files"], keep) if k]
+            corners = d["corners"][keep]
         else:
-            self.files = [str(f) for f in d["files"]]
-            self.corners = d["corners"]
+            files = [str(f) for f in d["files"]]
+            corners = d["corners"]
+        # 平行四边形残差闸（v68 放宽版）
+        diag = np.linalg.norm(corners[:, 3] - corners[:, 0], axis=-1)
+        para = np.linalg.norm(corners[:, 0] + corners[:, 3] - corners[:, 1] - corners[:, 2],
+                              axis=-1)
+        ok = para / np.maximum(diag, 1e-6) <= self.PARA_REL_MAX
+        self.files = [f for f, k in zip(files, ok) if k]
+        self.corners = corners[ok]
+        self.n_dropped = int((~ok).sum())
         self.root = Path(root)
         self._cache = {}
 
@@ -332,14 +412,15 @@ class CornerFeeder:
     def _fill(self):
         wr = random.Random(self.rng.randrange(1 << 30))
         while not self.stop:
-            xs, pts, valid = [], [], []
+            xs, gts, valid = [], [], []
             for _ in range(self.bs):
-                x, p = self._one_sample(wr)
+                x, b, r = self._one_sample(wr)
                 xs.append(x)
-                pts.append(p if p is not None else np.zeros((NKP, 2), np.float32))
-                valid.append(0.0 if p is None else 1.0)
+                gts.append(np.concatenate([b, r]) if b is not None
+                           else np.zeros((NPK + 8,), np.float32))
+                valid.append(0.0 if b is None else 1.0)
             batch = (torch.from_numpy(np.stack(xs)),
-                     torch.from_numpy(np.stack(pts)).float(),
+                     torch.from_numpy(np.stack(gts)).float(),
                      torch.tensor(valid, dtype=torch.float32))
             self.q.put(batch, timeout=300)
 
@@ -351,11 +432,14 @@ class CornerFeeder:
 
 
 def make_val(seed, n):
-    """固定 seed 渲 n 帧干净整屏（无增广）→ (x [n,3,256,256], pts [n,4,2])，可复现。"""
+    """固定 seed 渲 n 帧干净整屏（无增广）→ (x [n,3,256,256], gt [n,14])，可复现。
+
+    gt = box6(6) + res8(8) 拼接（训练/val 的 14 维 target 布局）。
+    """
     rng = random.Random(seed)
     fonts = [f for f in R.load_font_pool()
              if f.split("\\")[-1].split("/")[-1] not in GEN_HOLDOUT]
-    xs, pts = [], []
+    xs, gts = [], []
     while len(xs) < n:
         lay = R.random_layout(rng, rng.choice(["opening", "midgame", "endgame"]))
         style = R.sample_style(rng, fonts)
@@ -365,20 +449,32 @@ def make_val(seed, n):
                 break
             canvas, quad = corner_place(flat, rng)
             q_model = np.array([quad[0], quad[1], quad[3], quad[2]], np.float32)
-            x, p = prep_input(canvas, q_model)
+            x, b, r = prep_input(canvas, q_model)
             xs.append(x)
-            pts.append(p)
-    return (torch.from_numpy(np.stack(xs)), torch.from_numpy(np.stack(pts)).float())
+            gts.append(np.concatenate([b, r]))
+    return (torch.from_numpy(np.stack(xs)), torch.from_numpy(np.stack(gts)).float())
 
 
 if __name__ == "__main__":
-    # 冒烟自测：渲染/负样本各 1 帧出形状 + 可视化留档
+    # 冒烟自测：渲染/ornate/负样本各出形状 + GT 往返一致性 + 可视化留档
     rng = random.Random(7)
     feeder_probe = CornerFeeder(11, 2, workers=0)  # workers=0：手动单线程探针
-    x, p = feeder_probe._render_one(rng)
-    print("渲染样本:", x.shape, x.dtype, "pts:", None if p is None else p.round(1).tolist())
-    xn, pn = prep_input(make_negative_frame(rng), None)
-    print("负样本:", xn.shape, "pts:", pn)
-    cv2.imwrite("../../.cache/corner_smoke_render.png",
-                ((x - x.min()) / (x.max() - x.min()) * 255).astype(np.uint8).transpose(1, 2, 0)[..., ::-1])
-    print("已存 .cache/corner_smoke_render.png（归一化域可视化）")
+    x0, b0, r0 = feeder_probe._render_one(rng)
+    print("渲染样本:", x0.shape, x0.dtype, "box6:", b0.round(1).tolist(),
+          "res8:", r0.round(2).tolist())
+    # ornate 强制目检帧（ORNATE_P 模块级变量直接改 1，存原图域可视化）
+    ORNATE_P = 1.0
+    rng_o = random.Random(99)
+    lay = R.random_layout(rng_o, rng_o.choice(["opening", "midgame", "endgame"]))
+    style = R.sample_style(rng_o, [f for f in R.load_font_pool()
+                                   if f.split("\\")[-1].split("/")[-1] not in GEN_HOLDOUT])
+    flat_o = R.render_board_flat(lay, style, rng_o)
+    canvas_o, quad_o = corner_place(flat_o, rng_o)
+    q_o = np.array([quad_o[0], quad_o[1], quad_o[3], quad_o[2]], np.float32)
+    _, b_o, r_o = prep_input(canvas_o, q_o)
+    print("ornate box6:", b_o.round(1).tolist(), "res8:", r_o.round(2).tolist())
+    cv2.imwrite("../../.cache/corner_smoke_ornate.png", canvas_o)
+    print("已存 .cache/corner_smoke_ornate.png（原图域，目检宽框/头像面板/GT 对位）")
+    xn, pn, rn = prep_input(make_negative_frame(rng), None)
+    print("负样本:", xn.shape, "box:", pn, "res:", rn)
+    print("已存 .cache/corner_smoke_render.png 略（v67 轮已目检）")

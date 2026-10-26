@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-"""自研角点模型推理孪生（v64）：与端上 OnnxBoardRecognizer.detectCorners 新语义同构。
+"""自研角点模型推理孪生（v68 混合头）：与端上 OnnxBoardRecognizer.detectCorners 同构。
 
 链路：corner_affine（长边方形窗）→ 256×256 → ImageNet 归一化 → 模型 →
-SimCC argmax 解码（argmax/512×256，OnnxGeom.simccKeypoints 同构）→ 逆仿射回原图。
+解码（双头各 [7,512] argmax/域换算 → box6+res8 → 端点 = c±u±v + clamp(res,±RES_LIM)）
+→ 逆仿射回原图。护栏（替代旧 boxPlausible，四边一致性）：对边平行由 box 构造保证、
+残差限幅 8px@256 不足以破坏平行性，数值校验边长下限（塌缩拒绝）、宽高比、面积。
 支持 torch state_dict 与 onnx 双后端（导出后对拍逐位验证用）。
 仅离线评测用，不参与训练。
 """
@@ -11,13 +13,33 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from corner_model import CORNER_IN, SIMCC_BINS, CornerSimCC
+from corner_model import (BOX_LO, BOX_HI, RES_LIM, CORNER_IN, NPK, SIMCC_BINS,
+                          X_CH, Y_CH, CornerSimCC, quad_to_gt)
 from pose_corner import IMAGENET_MEAN, IMAGENET_STD, corner_affine
+
+# 14 维值域（box6 + res8）
+ALL_LO = np.array(list(BOX_LO) + [-RES_LIM] * 8, np.float32)
+ALL_HI = np.array(list(BOX_HI) + [RES_LIM] * 8, np.float32)
+
+
+def corners_from_parts_np(gt14):
+    """14 维参数（numpy [...,14]）→ 四角 [TL,TR,BL,BR]（[...,4,2]）。"""
+    gt14 = np.asarray(gt14, np.float32)
+    box, res8 = gt14[..., :NPK], gt14[..., NPK:]
+    cx, cy, ux, uy, vx, vy = [box[..., i] for i in range(6)]
+    r = np.clip(res8, -RES_LIM, RES_LIM)
+    pts = np.stack([
+        np.stack([cx - ux - vx + r[..., 0], cy - uy - vy + r[..., 1]], -1),   # TL
+        np.stack([cx + ux - vx + r[..., 2], cy + uy - vy + r[..., 3]], -1),   # TR
+        np.stack([cx - ux + vx + r[..., 4], cy - uy + vy + r[..., 5]], -1),   # BL
+        np.stack([cx + ux + vx + r[..., 6], cy + uy + vy + r[..., 7]], -1)], -2)  # BR
+    return pts.astype(np.float32)
 
 
 class CornerInfer:
     """detect/detect_with_check 与 pose_corner.PoseCornerDetector 同接口
-    （角点 [TL,TR,BL,BR] 原图坐标；boxPlausible 同参数：宽高比 0.5~2.2、面积 2%~120%）。"""
+    （角点 [TL,TR,BL,BR] 原图坐标；护栏参数对齐旧 boxPlausible：宽高比 0.5~2.2、
+    面积 2%~120%）。"""
 
     def __init__(self, torch_weights: Path | None = None, onnx_path: Path | None = None):
         self.sess = None
@@ -37,11 +59,11 @@ class CornerInfer:
     def _run(self, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         if self.sess is not None:
             outs = self.sess.run(None, {self.iname: x[None].astype(np.float32)})
-            return outs[0][0], outs[1][0]      # [4,512] x/y（导出固化 x 前 y 后）
+            return outs[0][0], outs[1][0]      # [7,512] 双头（导出固化 x 前 y 后）
         import torch
         with torch.no_grad():
-            lx, ly = self.model(torch.from_numpy(x[None]))
-        return lx[0].numpy(), ly[0].numpy()
+            hx, hy = self.model(torch.from_numpy(x[None]))
+        return hx[0].numpy(), hy[0].numpy()
 
     def detect(self, frame_bgr: np.ndarray) -> np.ndarray | None:
         h, w = frame_bgr.shape[:2]
@@ -50,9 +72,13 @@ class CornerInfer:
                                 flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
         rgb = cv2.cvtColor(warped, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
         x = (rgb.transpose(2, 0, 1) - IMAGENET_MEAN.reshape(3, 1, 1)) / IMAGENET_STD.reshape(3, 1, 1)
-        sx, sy = self._run(x)
-        kps = np.stack([sx.argmax(axis=1) / SIMCC_BINS * CORNER_IN,
-                        sy.argmax(axis=1) / SIMCC_BINS * CORNER_IN], axis=1).astype(np.float32)
+        hx, hy = self._run(x)
+        gt14 = np.zeros(NPK + 8, np.float32)
+        for j, p in enumerate(X_CH):
+            gt14[p] = hx[j].argmax() / SIMCC_BINS * (ALL_HI[p] - ALL_LO[p]) + ALL_LO[p]
+        for j, p in enumerate(Y_CH):
+            gt14[p] = hy[j].argmax() / SIMCC_BINS * (ALL_HI[p] - ALL_LO[p]) + ALL_LO[p]
+        kps = corners_from_parts_np(gt14)                # [4,2] 256 空间
         inv = cv2.invertAffineTransform(M)
         ones = np.concatenate([kps, np.ones((4, 1), np.float32)], axis=1)
         return (inv @ ones.T).T  # [4,2] 原图坐标
@@ -61,14 +87,17 @@ class CornerInfer:
         corners = self.detect(frame_bgr)
         if corners is None:
             return None
-        x0, y0 = corners.min(axis=0)
-        x1, y1 = corners.max(axis=0)
-        bw, bh = x1 - x0, y1 - y0
-        if bw <= 0 or bh <= 0:
+        # v68 护栏（替代旧 boxPlausible 的 bbox 检查）：box 构造 + 限幅残差下对边
+        # 近似平行（残差 ≤8px@256 不足以造出简并），护栏校验边长/比例/面积。
+        tl, tr, bl, br = corners
+        wvec, hvec = tr - tl, bl - tl            # 四边形两边
+        wlen, hlen = float(np.linalg.norm(wvec)), float(np.linalg.norm(hvec))
+        if wlen < 8 or hlen < 8:                 # 塌缩拒绝（<8px@原图）
             return None
-        if not (0.5 <= bw / bh <= 2.2):
+        if not (0.5 <= wlen / hlen <= 2.2):      # 宽高比（旧 boxPlausible 同域）
             return None
         h, w = frame_bgr.shape[:2]
-        if not (0.02 <= bw * bh / (w * h) <= 1.2):
+        area = abs(float(np.cross(wvec, hvec)))
+        if not (0.02 <= area / (w * h) <= 1.2):  # 面积占比（旧 boxPlausible 同域）
             return None
         return corners

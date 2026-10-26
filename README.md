@@ -20,7 +20,7 @@
 | 文件 | 模型 | 体积 |
 |---|---|---|
 | `weights/gridhead_fp32.onnx` | GridHead 整板识别 | 11.7MB |
-| `weights/corner_simcc_v1.onnx` | CornerSimCC 角点定位（v6 权重） | 2.5MB |
+| `weights/corner_simcc_v1.onnx` | CornerSimCC 角点定位（**v4 权重**现役，v6 因 ornate 域塌缩事故回退见 docs/训练工作台账.md） | 2.5MB |
 | `weights/cell_cls_fp32.onnx` | cell_cls 格级精分类 | 0.6MB |
 
 ## 端上核心代码
@@ -42,6 +42,7 @@
 ├── renderer.py / corner_data.py 在线渲染数据工厂（角点 GT 解析自证）
 ├── pipeline.py                  一键训练编排：预检→watchdog→训练→导出→评测→报告
 ├── presets/                     配方库 v35~v66（每轮唯一主变量 + 预注册判据）
+├── judges/                      判据注册表（唯一可信源 JSON，corner_accept.py 自动对表）
 ├── eval_human26.py 等           五套考卷：26帧金口径/bench/四轴/screen30/nano17
 ├── augment_*_patch.py           外部数据裁片/贴片管线
 ├── make_photo_warp_pool.py      半监督伪标签池工厂（一致格 IGNORE）

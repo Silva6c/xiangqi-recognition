@@ -25,6 +25,7 @@ from eval_screen30 import (  # noqa: E402  复用其模型加载与管线（模�
     cls_input_280x315, r3_probs, nano_pred, cell_out,
     full_cascade, detect_orientation_canonical,
 )
+import eval_screen30 as _ES                   # noqa: E402  sess_nano 等模块级状态经此访问
 from corner_infer import CornerInfer          # noqa: E402
 from diag_two_domains import CLS              # noqa: E402  ".xKABNRCPkabnrcp"
 
@@ -90,25 +91,33 @@ def main():
         else:
             pred = g.reshape(-1)
             e2e_err = int((pred[~skip] != lab[~skip]).sum())
-        # ② nano 底（同 warp）
-        npred, norient = detect_orientation_canonical(nano_pred(img280))
-        nano_err = 90 if npred is None else int((npred.reshape(-1)[~skip] != lab[~skip]).sum())
+        # ② nano 底（同 warp）——可缺省（国产化后 assets 已删 nano onnx）
+        if _ES.sess_nano is not None:
+            npred, norient = detect_orientation_canonical(nano_pred(img280))
+            nano_err = 90 if npred is None else int((npred.reshape(-1)[~skip] != lab[~skip]).sum())
+        else:
+            nano_err = -1
 
         stats["e2e"].append(e2e_err); stats["nano"].append(nano_err)
         rows_out.append({"k": k, "locate": "ok", "orient": orient or "",
                          "e2e_err": e2e_err, "nano_err": nano_err,
                          "conf": truth[k].get("conf", "")})
-        print(f"[{k}] {Path(img_path).name} 定位ok 朝向{orient} 自研错{e2e_err} nano错{nano_err} "
+        print(f"[{k}] {Path(img_path).name} 定位ok 朝向{orient} 自研错{e2e_err} "
+              f"nano错{'缺省' if nano_err < 0 else nano_err} "
               f"真值置信{truth[k].get('conf','')}")
 
     n = len(rows_out)
     def fek(errs, k): return sum(1 for e in errs if e <= k)
     e, nn = stats["e2e"], stats["nano"]
+    nnv = [x for x in nn if x >= 0]   # nano 缺省帧（-1）不进统计
     print(f"\n== 汇总（{n} 局，定位失败 {len(stats['locate_fail'])}）==")
     print(f"自研端到端 full-err-0/1/3: {fek(e,0)}/{n} {fek(e,1)}/{n} {fek(e,3)}/{n}  "
           f"中位错 {np.median(e):.0f}")
-    print(f"nano 识别环 full-err-0/1/3: {fek(nn,0)}/{n} {fek(nn,1)}/{n} {fek(nn,3)}/{n}  "
-          f"中位错 {np.median(nn):.0f}")
+    if nnv:
+        print(f"nano 识别环 full-err-0/1/3: {fek(nnv,0)}/{len(nnv)} {fek(nnv,1)}/{len(nnv)} "
+              f"{fek(nnv,3)}/{len(nnv)}  中位错 {np.median(nnv):.0f}")
+    else:
+        print("nano 识别环: 缺省（assets 已删 nano onnx）")
     print("上游对照: cchess_reg 13/17 零错(最多3) | 天天象棋 9/17 | 棋路 10/17")
     json.dump({"rows": rows_out, "summary": {
         "n": n, "locate_fail": stats["locate_fail"],

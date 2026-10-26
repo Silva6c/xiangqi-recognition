@@ -43,7 +43,12 @@ if _r3:
     R3 = _r3
 
 sess_r3 = ort.InferenceSession(R3, providers=["CPUExecutionProvider"])
-sess_nano = ort.InferenceSession(NANO, providers=["CPUExecutionProvider"])
+# v66 国产化：nano 已从 assets 删除——评测对照可选（缺失置 None，用到 nano 的口径
+# 在调用处自降级；纯自研链路不受影响）
+try:
+    sess_nano = ort.InferenceSession(NANO, providers=["CPUExecutionProvider"])
+except Exception:                                    # noqa: BLE001 缺文件/加载失败
+    sess_nano = None
 model = CellCls()
 model.load_state_dict(torch.load(str(HERE / "runs/cell_v3/best.pt"), map_location="cpu"))
 model.eval()
@@ -58,7 +63,12 @@ if _pt:
     _kw = {"onnx_path": Path(_pt)} if _pt.endswith(".onnx") else {"torch_weights": Path(_pt)}
     detector = CornerInfer(**_kw)
 else:
-    detector = PoseCornerDetector()
+    # v66 国产化：RTMPose(4_v6-0301) 已从 assets 删除——历史基线口径缺失置 None，
+    # 环1/环3 走本函数 main 的地方需自带 --corner-pt 或自行构造
+    try:
+        detector = PoseCornerDetector()
+    except Exception:                                # noqa: BLE001
+        detector = None
 
 
 def cls_input_280x315(w450_bgr: np.ndarray) -> np.ndarray:
@@ -172,8 +182,11 @@ def main():
         _, _, l3k, _ = __import__("eval_cascade_cell").cascade_cell(
             {**o, "cell": cp, "cell_conf": cc}, labels[k], THR, CTHR, CONF)
         l3 += l3k
-        nano_err += int((nano_pred(img280) != labels[k]).sum())
-    print(f"== 环2 识别上限（GT warp）：r3 L0={l0} → 级联 L3={l3} | nano={nano_err} ==")
+        # nano 对照可缺省（国产化后 assets 已删 nano onnx，sess_nano=None）
+        if sess_nano is not None:
+            nano_err += int((nano_pred(img280) != labels[k]).sum())
+    print(f"== 环2 识别上限（GT warp）：r3 L0={l0} → 级联 L3={l3} | "
+          f"nano={'缺省' if sess_nano is None else nano_err} ==")
 
     # ── 环 3：端到端 ──
     e_l0 = e_l3 = badframe = fail_wrong = 0

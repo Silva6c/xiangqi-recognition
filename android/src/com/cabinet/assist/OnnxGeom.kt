@@ -268,6 +268,60 @@ object OnnxGeom {
         return out
     }
 
+    // ==================== v68 混合头 box 解码 ====================
+
+    /**
+     * v68 box+残差混合解码（CornerSimCC 契约，docs/v67方案 + 训练工作台账 v68 归因）：
+     * 输出双头各 [1,7,512]——x 头 (cx,ux,vx,dxTL,dxTR,dxBL,dxBR)、y 头 (cy,uy,vy,dyTL,
+     * dyTR,dyBL,dyBR)。box6 = 平行四边形（对边平行由构造保证，v6 式塌缩结构性不可能）；
+     * 残差 4 角修正（clamp ±8px@256，补直回归精度与透视偏移，量级不足以破坏塌缩防御）。
+     * 端点 = c±u±v + clamp(res)。值域与 tools/recog/corner_model.py 逐项对齐。
+     * 护栏（256 空间）：边长下限/宽高比/面积，不合法返回 null（上层走重定位自愈链）。
+     */
+    fun boxDecode(simccX: FloatArray, simccY: FloatArray, inputSize: Int): FloatArray? {
+        val bins = inputSize * 2  // 512
+        // 每头 7 分布的值域（corner_model.py BOX_LO/HI + RES_LIM=8 契约）
+        val loB = floatArrayOf(0f, -128f, -128f)          // cx/cy, ux/uy, vx/vy 的 lo
+        val hiB = floatArrayOf(256f, 128f, 128f)
+        val loR = -8f; val hiR = 8f                       // 残差域
+        val px = FloatArray(7); val py = FloatArray(7)
+        for (j in 0 until 7) {
+            val ox = j * bins
+            var ax = 0; var vx0 = simccX[ox]
+            var ay = 0; var vy0 = simccY[ox]
+            for (i in 1 until bins) {
+                if (simccX[ox + i] > vx0) { vx0 = simccX[ox + i]; ax = i }
+                if (simccY[ox + i] > vy0) { vy0 = simccY[ox + i]; ay = i }
+            }
+            val loX = if (j < 3) loB[j] else loR
+            val hiX = if (j < 3) hiB[j] else hiR
+            px[j] = ax.toFloat() / bins * (hiX - loX) + loX
+            py[j] = ay.toFloat() / bins * (hiX - loX) + loX   // y 头同域布局（cx/cy 域一致）
+        }
+        val cx = px[0]; val ux = px[1]; val vx = px[2]
+        val cy = py[0]; val uy = py[1]; val vy = py[2]
+        // 残差 clamp（头内角序 TL,TR,BL,BR）
+        val cl = { v: Float -> v.coerceIn(loR, hiR) }
+        val xs = floatArrayOf(
+            cx - ux - vx + cl(px[3]), cx + ux - vx + cl(px[4]),
+            cx - ux + vx + cl(px[5]), cx + ux + vx + cl(px[6]))
+        val ys = floatArrayOf(
+            cy - uy - vy + cl(py[3]), cy + uy - vy + cl(py[4]),
+            cy - uy + vy + cl(py[5]), cy + uy + vy + cl(py[6]))
+        // 护栏：w = TR-TL，h = BL-TL
+        val wx = xs[1] - xs[0]; val wy = ys[1] - ys[0]
+        val hx = xs[2] - xs[0]; val hy = ys[2] - ys[0]
+        val wlen = kotlin.math.sqrt(wx * wx + wy * wy)
+        val hlen = kotlin.math.sqrt(hx * hx + hy * hy)
+        if (wlen < 1f || hlen < 1f) return null                     // 塌缩拒绝
+        val ratio = wlen / hlen
+        if (ratio < 0.5f || ratio > 2.2f) return null               // 宽高比（旧 boxPlausible 同域）
+        val area = kotlin.math.abs(wx * hy - wy * hx)
+        if (area < 0.02f * inputSize * inputSize ||
+            area > 1.2f * inputSize * inputSize) return null        // 面积占比（同域）
+        return floatArrayOf(xs[0], ys[0], xs[1], ys[1], xs[2], ys[2], xs[3], ys[3])
+    }
+
     // ==================== 分类输出解码 ====================
 
     /** 模型类别号 → Piece 常量（'.'/'x' 均视为空格；'x' 为未知图案，具体子种不可知） */

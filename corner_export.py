@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
-"""CornerSimCC ONNX 导出（v64 第 2 波）：fp32 单文件（小模型 int8 已证伪，不量化）。
+"""CornerSimCC ONNX 导出（v64 第 2 波 → v67 box 契约）：fp32 单文件（不量化）。
 
-契约固化：输出按序 (simcc_x, simcc_y) 各 [b,4,512]——Kotlin 端 OnnxGeom.simccKeypoints
-按输出顺序取 [0][1]，导出后与 torch 对拍逐位验证；权重内嵌单文件 + ir_version≤8
-（端上 ORT 1.17.1，cell_export 同款纪律）；末尾 CPU 延迟快测（对照 4_v6=11.9ms 单线程）。
+契约固化（v67）：输出按序 (simcc_x, simcc_y) 各 [b,3,512]——x 头 (cx,ux,vx)、
+y 头 (cy,uy,vy)，Kotlin 端 OnnxGeom.boxDecode 按输出顺序取 [0][1] 解码 box6→四角，
+导出后与 torch 对拍逐位验证；权重内嵌单文件 + ir_version≤8（端上 ORT 1.17.1，
+cell_export 同款纪律）；末尾 CPU 延迟快测（对照 4_v6=11.9ms 单线程）。
+【雷区】输出形状与 v64 4 角点模型（[b,4,512]）不同——assets 替换必须与端上
+boxDecode 原子上线，旧模型+新代码解码错位。
 
-用法：python corner_export.py --ckpt runs/corner_v2/best.pt --out runs/corner_v2
+用法：python corner_export.py --ckpt runs/corner_v67/best.pt --out runs/corner_v67
 """
 import argparse
 import os

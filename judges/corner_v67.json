@@ -1,0 +1,79 @@
+{
+  "version": "corner_v67",
+  "registered": "2026-10-26",
+  "doc": "docs/v67方案-角点边缘化重设计-20261026.md §四",
+  "note": "判据唯一可信源（手册文档只引用不改写）；预注册纪律：禁止修改已注册规则，新版本立项复制本文件改名追加（如 corner_v68.json），验收脚本 --judges 指定",
+  "rules": [
+    {
+      "id": "J1",
+      "name": "QQ事故截图基准",
+      "eval": "qq",
+      "metric": "qq_mean_px",
+      "op": "<=",
+      "target": 6.0,
+      "baseline": "v4✓ / v6✗(塌缩)",
+      "required": true
+    },
+    {
+      "id": "J2",
+      "name": "screen30环1定位",
+      "eval": "screen30",
+      "metric": "env1.det_ok",
+      "op": "==",
+      "target": 30,
+      "baseline": "v4=30/30",
+      "required": true
+    },
+    {
+      "id": "J3",
+      "name": "screen30环3端到端",
+      "eval": "screen30",
+      "metric": "env3.fail_wrong",
+      "op": "<=",
+      "target": 92,
+      "baseline": "v4=92",
+      "required": true
+    },
+    {
+      "id": "J4",
+      "name": "nano17定位FAIL",
+      "eval": "nano17",
+      "metric": "locate_fail",
+      "op": "<=",
+      "target": 3,
+      "baseline": "v4=3 / v6=0",
+      "required": true
+    },
+    {
+      "id": "J5",
+      "name": "vid_heldout一致率",
+      "eval": "vid",
+      "metric": "ok",
+      "op": "==",
+      "target": 6,
+      "baseline": "v6=6/6",
+      "required": false
+    },
+    {
+      "id": "J6",
+      "name": "photo_heldout一致率",
+      "eval": "photo",
+      "metric": "rate",
+      "op": ">=",
+      "target": 0.331,
+      "baseline": "v4=33.1%",
+      "required": true
+    },
+    {
+      "id": "J7",
+      "name": "漂移场景误拒",
+      "eval": "manual",
+      "metric": "consecutive_null",
+      "op": "==",
+      "target": 0,
+      "baseline": "v6=null×4/8s",
+      "required": false,
+      "note": "真机观测项，corner_accept 不跑；部署后由用户实测回填"
+    }
+  ]
+}

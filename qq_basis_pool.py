@@ -13,7 +13,7 @@ import torch
 import torch.nn as nn
 
 HERE = Path(__file__).resolve().parent          # recog 目录
-CACHE = HERE.parent.parent / ".cache"                    # phone/.cache（不入库）
+CACHE = HERE / "data"                                      # 数据缓存根（不入库）
 sys.path.insert(0, str(HERE))
 from cell_model import DWBlk  # noqa: E402
 from pose_corner import IMAGENET_MEAN, IMAGENET_STD, corner_affine  # noqa: E402
@@ -85,7 +85,7 @@ def main():
     np.savez(str(CACHE / "corner_qq_basis.npz"),
              files=np.array([str(IMG)]), corners=det[None].astype(np.float32),
              domain=np.array(["qq_ornate"]), split=np.array(["holdout"]))
-    print("已存 corner_qq_basis.npz + qq_basis_check.png（目检：绿点须落格网交叉点）")
+    print("已存 data/corner_qq_basis.npz + data/reports/qq_basis_check.png（目检：绿点须落格网交叉点）")
 
 
 if __name__ == "__main__":

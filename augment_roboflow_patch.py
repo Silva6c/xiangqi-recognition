@@ -28,7 +28,7 @@ QC 语义（冒烟修订，对方案 §2.2 的偏离记录）：
 
 用法：
   python augment_roboflow_patch.py                      # 全量 1.2 万底帧
-  python augment_roboflow_patch.py --frames 24 --out ../../../.cache --tag smoke_rfpt
+  python augment_roboflow_patch.py --frames 24 --out data/pools --tag smoke_rfpt
 """
 from __future__ import annotations
 

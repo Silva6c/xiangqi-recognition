@@ -11,6 +11,9 @@
 """
 import argparse
 import json
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
 
 import numpy as np
 import torch
@@ -19,7 +22,7 @@ from PIL import Image
 from cell_model import CellCls
 
 CLS_CHARS = ".xKABNRCPkabnrcp"
-ERR_JSON = r"D:\AI-works\cabinet\.cache\r3_11errors.json"
+ERR_JSON = HERE / "data/reports/r3_11errors.json"
 
 
 def crop_cells(img315: np.ndarray, labels: np.ndarray):

@@ -33,7 +33,7 @@ THR, CTHR, CONF = 0.90, 0.60, (0.92, 0.95)      # v63 封版参数
 MAX_CHANGED = 13                                 # 端上改格数闸
 SWAP_PAIRS = EC.SWAP_PAIRS                       # ({5,6},{12,13}) 对换家族
 
-R3 = r"D:/AI-works/cabinet/.cache/v56_study/r3_hbw08_w085/gridhead_fp32.onnx"
+R3 = str(HERE / "weights/gridhead_fp32.onnx")  # 默认现役权重（仓内），--r3 覆盖
 NANO = str(HERE / "../../app/src/main/assets/models/nano_v3-0319.onnx")
 
 # --r3 <onnx>：换整板识别模型（v66 起新 r3 验收口径；不带 = 现役 r3_w085 历史基线）。
@@ -230,9 +230,10 @@ def main():
               "env3": {"r3_L0": int(e_l0), "pipeline_err": int(e_l3),
                        "badframe": int(badframe), "fail_wrong": int(fail_wrong)},
               "details": details}
-    Path(r"D:/AI-works/cabinet/.cache/screen30_report.json").write_text(
+    (HERE / "data/reports").mkdir(parents=True, exist_ok=True)
+    (HERE / "data/reports/screen30_report.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
-    print("已存 .cache/screen30_report.json")
+    print("已存 data/reports/screen30_report.json")
 
 
 if __name__ == "__main__":

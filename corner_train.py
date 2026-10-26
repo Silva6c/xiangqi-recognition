@@ -2,7 +2,7 @@
 """自研角点模型（v68 混合头）轻量训练。cell_cls 级轻训练授权范围内（1~2h/轮）。
 
 用法：python corner_train.py --run-name corner_v68 --steps 1500 --batch 96 --lr 3e-3 \
-        --real-npz ../../.cache/corner_v5_pool.npz --val-every 100
+        --real-npz data/pools/corner_v5_pool.npz --val-every 100
 损失：14 分布 soft-CE = box6（cx,cy,ux,uy,vx,vy）+ 残差8（4 角 dx,dy）；x 头
 （cx,ux,vx+4dx）7 分布、y 头（cy,uy,vy+4dy）7 分布。值域 BOX_LO/HI + ±RES_LIM
 （残差 target clamp 限幅——真实源透视残差超限部分截断，统计 99.9% 帧无损）。

@@ -1,0 +1,13 @@
+# 训练/评测管线依赖（本机验证版本；GPU 训练需 CUDA 环境）
+# 安装：pip install -r requirements.txt
+# torch 装机请按 pytorch.org 指引选择对应 CUDA 版本（本机验证 = cu126）
+torch==2.14.1
+torchvision==0.29.1
+opencv-python==4.13.0.92
+onnx==1.20.1
+onnxruntime==1.26.0
+numpy==2.2.6
+pillow==11.1.0
+
+# 端上（android/）依赖为 Gradle 管理：com.microsoft.onnxruntime:onnxruntime-android
+# 见 android/README.md，不在此列。

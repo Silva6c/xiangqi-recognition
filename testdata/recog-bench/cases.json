@@ -1,0 +1,131 @@
+{
+  "说明": "识别引擎性能对比实验真值标注（2026-10-04）。真值来源双源交叉：①实验底片人工读图（case02-12 截图逐子核对）②cnvcs 对局着法序列推演。所有底片与 board confirmed FEN 一致（识别确认链全程零失误）。case4 走子失败与 case3 同局面，不单独设窗。fen 字段为 90 格完整真值；window 为该局面的帧归属时间窗（logcat 时间，含confirmed 时刻起的 b/w 中途帧）。",
+  "环境": {
+    "设备": "Android 模拟器 api34_phone 复制实例 api34_phone_bench (x86_64, 1080x2280 440dpi)",
+    "对手": "cnvcs 象棋 特级大师人机对局（红方=实验操作者 adb 点击走子）",
+    "实验包": "Cabinet vc104 + 实验埋点（rec(yolo) 补 fen/耗时、bench_profiling=true、FLAG_SECURE 临时禁用）"
+  },
+  "cases": [
+    {
+      "id": 1,
+      "stage": "opening",
+      "fen": "rnbakab1r/9/1c4nc1/p1p1p1p1p/9/9/P1P1P1P1P/1C2C4/9/RNBAKABNR w - - 0 1",
+      "window": [
+        "16:17:39",
+        "16:21:51"
+      ],
+      "piece_count": 32,
+      "note": "炮二平五+黑马二进三；底片误拍主菜单，真值=开局着法推演（与 confirmed 一致）"
+    },
+    {
+      "id": 2,
+      "stage": "opening",
+      "fen": "rnbakab1r/9/1c4nc1/p1p1p3p/6p2/9/P1P1P1P1P/1CN1C4/9/R1BAKABNR w - - 0 1",
+      "window": [
+        "16:21:51",
+        "16:26:11"
+      ],
+      "piece_count": 32,
+      "note": "马八进七+黑卒7进1；底片 case02.png 核对一致"
+    },
+    {
+      "id": 3,
+      "stage": "opening",
+      "fen": "rnbakab1r/9/6nc1/p1p1p3p/6p2/9/P1P1P1P1P/1CN1C4/9/1cBAKABNR w - - 0 1",
+      "window": [
+        "16:26:11",
+        "16:28:15"
+      ],
+      "piece_count": 31,
+      "note": "车九平八+黑炮2进7吃车（黑炮沉红底线 i1）；底片 case03.png 一致。case4 走子失败（车已失）与本局面相同，帧并入本窗口"
+    },
+    {
+      "id": 5,
+      "stage": "opening",
+      "fen": "rnbakab1r/9/6nc1/p1p1p3p/9/6p2/P1P1P3P/1CN1C4/9/1cBAKABNR w - - 0 1",
+      "window": [
+        "16:28:15",
+        "16:29:17"
+      ],
+      "piece_count": 30,
+      "note": "兵三进一+黑卒吃兵；底片 case05.png 一致"
+    },
+    {
+      "id": 6,
+      "stage": "middle",
+      "fen": "rnbakab1r/9/6nc1/p1p1p3p/9/6p2/P1P1P3P/1CN1C1N2/9/c1BAKAB1R w - - 0 1",
+      "window": [
+        "16:29:17",
+        "16:30:19"
+      ],
+      "piece_count": 30,
+      "note": "马二进三+黑炮平1路沉底；底片 case06.png 一致"
+    },
+    {
+      "id": 7,
+      "stage": "middle",
+      "fen": "rnbakab1r/9/6nc1/p1p1p3p/9/9/P1P1P1p1P/1CN2CN2/9/c1BAKAB1R w - - 0 1",
+      "window": [
+        "16:30:19",
+        "16:35:49"
+      ],
+      "piece_count": 30,
+      "note": "炮五平四+黑卒进1；底片 case07.png 一致。窗口含实验操作中断期（切页垃圾帧）"
+    },
+    {
+      "id": 8,
+      "stage": "middle",
+      "fen": "rnbakab1r/9/6nc1/p1p1p3p/9/8P/P1P1P4/1CN2Cp2/9/c1BAKAB1R w - - 0 1",
+      "window": [
+        "16:35:49",
+        "16:37:11"
+      ],
+      "piece_count": 29,
+      "note": "兵一进一+黑卒进1吃马二；底片 case08.png 一致；勘误2026-10-04：底行車实位于(9,8)（底片裁剪铁证，人工标注错列），(9,7)为空"
+    },
+    {
+      "id": 9,
+      "stage": "middle",
+      "fen": "rnbakabr1/9/6nc1/p1p1p3p/9/8P/P1P1P4/1CN2Cp2/9/c1BAKABR1 w - - 0 1",
+      "window": [
+        "16:37:11",
+        "16:38:18"
+      ],
+      "piece_count": 29,
+      "note": "车一平二+黑车1平2 应对；底片 case09.png 一致"
+    },
+    {
+      "id": 10,
+      "stage": "middle",
+      "fen": "rnbakabr1/9/6nc1/p1p1p3p/9/4P3P/P1P6/1CN2p3/9/c1BAKABR1 w - - 0 1",
+      "window": [
+        "16:38:18",
+        "16:39:44"
+      ],
+      "piece_count": 28,
+      "note": "兵五进一+黑卒平5吃炮四；底片 case10.png 一致"
+    },
+    {
+      "id": 11,
+      "stage": "endgame",
+      "fen": "rnbakabr1/9/6nc1/p1p1p3p/9/2P1P3P/P8/1CN6/5p3/c1BAKABR1 w - - 0 1",
+      "window": [
+        "16:39:44",
+        "16:42:26"
+      ],
+      "piece_count": 28,
+      "note": "兵七进一+黑卒进1；底片 case11.png 一致"
+    },
+    {
+      "id": 12,
+      "stage": "endgame",
+      "fen": "rnbakabr1/9/6nc1/p1p1p3p/9/2P1P3P/P8/1CN6/7R1/c1BAKpB2 w - - 0 1",
+      "window": [
+        "16:42:26",
+        "99:99:99"
+      ],
+      "piece_count": 27,
+      "note": "车二进一+黑卒进1吃仕；底片 case12.png 一致。首次相五进三被塞象眼拒绝，重走车二进一"
+    }
+  ]
+}

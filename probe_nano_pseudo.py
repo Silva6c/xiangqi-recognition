@@ -52,7 +52,7 @@ def warp_by_corners(img, corners):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--pool", default="../../.cache/corner_photo_clean.npz")
+    ap.add_argument("--pool", default="data/pools/corner_photo_clean.npz")
     ap.add_argument("--max-n", type=int, default=0, help=">0 时抽样前 N 帧")
     args = ap.parse_args()
 
@@ -119,9 +119,9 @@ def main():
     json.dump({"n": n, "stats": dict(stats),
                "comp_rate": stats["comp_ok"] / t, "agree_rate": agree_cells / max(agree_valid, 1),
                "pmax_med": float(np.median(cl))},
-              open(HERE / "../../.cache/nano_pseudo_probe.json", "w", encoding="utf-8"),
+              open(HERE / "data/reports/nano_pseudo_probe.json", "w", encoding="utf-8"),
               ensure_ascii=False, indent=1)
-    print("已存 .cache/nano_pseudo_probe.json")
+    print("已存 data/reports/nano_pseudo_probe.json")
 
 
 if __name__ == "__main__":

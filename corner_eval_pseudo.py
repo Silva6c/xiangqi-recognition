@@ -33,7 +33,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--corner-pt", default=None)
     ap.add_argument("--onnx", default=None)
-    ap.add_argument("--pseudo", default=str(HERE / "../../.cache/corner_pseudo.npz"))
+    ap.add_argument("--pseudo", default=str(HERE / "data/pools/corner_pseudo.npz"))
     args = ap.parse_args()
     inf = CornerInfer(torch_weights=args.corner_pt, onnx_path=args.onnx)
 
@@ -60,7 +60,8 @@ def main():
                        "dist_med": float(np.median(ds)), "dist_p90": float(np.percentile(ds, 90))}
         print(f"[{dom}] 一致率 {s['ok']}/{s['n']} = {s['ok']/s['n']:.4f} "
               f"中位距离 {np.median(ds):.1f}px p90 {np.percentile(ds, 90):.1f}px")
-    Path(args.pseudo).with_name("corner_pseudo_eval.json").write_text(
+    (HERE / "data/reports").mkdir(parents=True, exist_ok=True)
+    (HERE / "data/reports/corner_pseudo_eval.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
     print("已存 .cache/corner_pseudo_eval.json")
 

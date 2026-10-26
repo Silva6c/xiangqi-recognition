@@ -8,3 +8,7 @@ __pycache__/
 *.pt
 *.onnx
 !weights/*.onnx
+# data/README.md 是重建指引文档，必须入库
+!data/
+!data/README.md
+*.tflite

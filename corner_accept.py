@@ -13,7 +13,7 @@
 评测项与耗时：qq ~10s / screen30 ~2min / nano17 ~3min / photo ~2min / vid ~10s。
 轻进程，可与训练并行（内存增量 <1GB）。
 输出：stdout 逐项 [PASS/FAIL/SKIP] 一行 + 末行 VERDICT；
-     详细结果 JSON 落 ../../.cache/reports/<run>_accept.json。
+     详细结果 JSON 落 data/reports/<run>_accept.json。
 """
 import argparse
 import json
@@ -24,7 +24,7 @@ import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent          # recog
-CACHE = HERE.parent.parent / ".cache"           # phone/.cache（不入库）
+CACHE = HERE / "data"                             # 数据缓存根（不入库；报告在 data/reports/）
 
 # 各评测命令模板（{pt} 为权重路径占位）；全部轻进程
 EVAL_CMDS = {
@@ -33,7 +33,7 @@ EVAL_CMDS = {
     "nano17":   [sys.executable, "eval_nano17.py", "--corner-pt", "{pt}"],
     "photo":    [sys.executable, "corner_eval_pseudo.py", "--corner-pt", "{pt}"],
     "vid":      [sys.executable, "corner_eval_pseudo.py", "--corner-pt", "{pt}",
-                 "--pseudo", "../../.cache/corner_vid_pool.npz"],
+                 "--pseudo", "data/pools/corner_vid_pool.npz"],
 }
 TIMEOUT_S = {"qq": 120, "screen30": 600, "nano17": 900, "photo": 600, "vid": 180}
 
@@ -90,7 +90,7 @@ def collect_qq(pt):
 
 def collect_screen30(pt):
     out, err = sh("screen30", pt)
-    d = _fresh_json(CACHE / "screen30_report.json") or {}
+    d = _fresh_json(CACHE / "reports/screen30_report.json") or {}
     if "env1" not in d:  # 落盘缺失/stale → stdout 兜底
         m1 = re.search(r"成功率 (\d+)/(\d+)", out)
         m3 = re.search(r"FAIL-wrong (\d+)", out)
@@ -101,7 +101,7 @@ def collect_screen30(pt):
 
 def collect_nano17(pt):
     out, err = sh("nano17", pt)
-    d = _fresh_json(CACHE / "nano17_eval.json") or {}
+    d = _fresh_json(CACHE / "reports/nano17_eval.json") or {}
     if "summary" not in d:  # 落盘缺失/stale → stdout 兜底
         m = re.search(r"定位失败 (\d+)", out)
         d = {"summary": {"locate_fail": [None] * int(m.group(1)) if m else [None] * 99}}

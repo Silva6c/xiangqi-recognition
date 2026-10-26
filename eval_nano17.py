@@ -30,8 +30,8 @@ from corner_infer import CornerInfer          # noqa: E402
 from diag_two_domains import CLS              # noqa: E402  ".xKABNRCPkabnrcp"
 
 ORIGIN = HERE / "../../../data/external/chinese-chess-recognition/docs/sota/origin"
-TRUTH = HERE / "../../.cache/nano17_truth.json"
-OUT = HERE / "../../.cache/nano17_eval.json"
+TRUTH = HERE / "data/nano17_truth.json"
+OUT = HERE / "data/reports/nano17_eval.json"
 
 
 def truth_labels(board_rows):

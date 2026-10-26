@@ -14,7 +14,14 @@
 | `src/com/cabinet/assist/RecognitionTypes.kt` | 识别结果数据类型 |
 | `src/com/cabinet/assist/BoardGrid.kt` | 90 格网格几何（格心/裁格） |
 | `src/com/cabinet/assist/YoloBoardDetector.kt` + `YoloPostprocessor.kt` | 历史口径（第三方 RTMPose/YOLO 角点基线）保留作 A/B 对照 |
+| `src/com/cabinet/assist/RLog.kt` | 识别链日志封装（编译依赖，随链同步） |
 | `src/com/cabinet/gamelogic/Piece.java` | 棋子枚举（识别链唯一外部类型依赖） |
+
+## 单测
+
+`src/test/java/com/cabinet/assist/`：`OnnxGeomTest`（含 boxDecode 契约/护栏用例）、
+`CellCascadeDecideTest`、`DetectionBoardMapperTest`——与主代码同版本同步，改动解码
+或级联逻辑后必须跑绿。
 
 ## 接入要点
 

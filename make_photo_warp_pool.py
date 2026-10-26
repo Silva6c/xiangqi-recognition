@@ -34,8 +34,8 @@ from probe_nano_pseudo import composition_ok, warp_by_corners   # noqa: E402  �
 from corner_data import imread_cn                               # noqa: E402  中文路径安全读图
 
 CRAWL = HERE                     # files 字段相对 recog（data\photo_crawl\raw\…）
-POOL = HERE / "../../.cache/corner_photo_clean.npz"
-EXCL = HERE / "../../.cache/corner_excl.json"
+POOL = HERE / "data/pools/corner_photo_clean.npz"
+EXCL = HERE / "data/reports/corner_excl.json"
 OUT = HERE / "data/real_photo_warp_v66.npz"
 
 

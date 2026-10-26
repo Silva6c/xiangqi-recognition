@@ -11,7 +11,7 @@ import cv2
 import numpy as np
 
 HERE = Path(__file__).resolve().parent          # recog 目录
-CACHE = HERE.parent.parent / ".cache"                    # phone/.cache（不入库）
+CACHE = HERE / "data"                                      # 数据缓存根（不入库）
 sys.path.insert(0, str(HERE))
 from corner_infer import CornerInfer  # noqa: E402
 

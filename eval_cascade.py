@@ -33,7 +33,7 @@ import numpy as np
 import onnxruntime as ort
 
 HERE = Path(__file__).resolve().parent
-R3 = str(HERE / "../../../.cache/v56_study/r3_hbw08_w085/gridhead_fp32.onnx")
+R3 = str(HERE / "weights/gridhead_fp32.onnx")  # 默认现役权重（仓内）
 NANO = str(HERE / "../../app/src/main/assets/models/nano_v3-0319.onnx")
 IM_MEAN = np.array([0.485, 0.456, 0.406], np.float32).reshape(3, 1, 1)
 IM_STD = np.array([0.229, 0.224, 0.225], np.float32).reshape(3, 1, 1)

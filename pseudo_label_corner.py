@@ -9,8 +9,8 @@
   - photo_crawl_eval/ 整目录隔离（评测补爬池）
 流程：RTMPose detect_with_check（boxPlausible 同参过滤）→ 通过者入池 →
   photo 域随机 15%（上限 320）+ 屏幕域 30 张切 heldout（不训，用于一致率验收）。
-输出：.cache/corner_pseudo.npz（files/corners TL,TR,BL,BR 原图坐标/split/domains）+
-  .cache/corner_excl.json（排除清单审计留档）。
+输出：data/pools/corner_pseudo.npz（files/corners TL,TR,BL,BR 原图坐标/split/domains）+
+  data/reports/corner_excl.json（排除清单审计留档）。
 伪标签口径说明：RTMPose 在照片域（横图，旧窗全覆盖）与居中 App 屏可信；多棋盘照片
 选盘歧义按"选中的也是真棋盘"接受（教定位不教选盘）。
 """
@@ -104,18 +104,18 @@ def main():
                + rng.sample(screen_idx, min(len(screen_idx), 30)))
     splits = ["holdout" if i in hold else "train" for i in idx]
     np.savez_compressed(
-        HERE / "../../.cache/corner_pseudo.npz",
+        HERE / "data/pools/corner_pseudo.npz",
         files=np.array(files), corners=corners,
         split=np.array(splits), domain=np.array(domains))
     json.dump({"exclude_names": sorted(excl), "exclude_npz": EXCLUDE_NPZ,
                "n_excl_skipped": n_skipped_excl, "n_det_failed": n_failed_det,
                "n_pass": len(files),
                "n_train": splits.count("train"), "n_holdout": splits.count("holdout")},
-              open(HERE / "../../.cache/corner_excl.json", "w", encoding="utf-8"),
+              open(HERE / "data/reports/corner_excl.json", "w", encoding="utf-8"),
               ensure_ascii=False, indent=1)
     print(f"通过 {len(files)}/{len(all_imgs)}（排除跳过 {n_skipped_excl}，检测失败/过小 {n_failed_det}）"
           f"→ train {splits.count('train')} / holdout {splits.count('holdout')}")
-    print("已落盘 .cache/corner_pseudo.npz + .cache/corner_excl.json")
+    print("已落盘 data/pools/corner_pseudo.npz + data/reports/corner_excl.json")
 
 
 if __name__ == "__main__":

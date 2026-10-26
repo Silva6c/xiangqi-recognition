@@ -44,6 +44,8 @@ def main():
     for f, gt, dom in zip(files, gts, doms):
         # 池内 files 可能带历史前缀 ..\..\.cache（原工作目录约定，斜杠随 OS）→ 统一映射 data/
         rel = str(f).replace("\\", "/").replace("../../.cache", "data")
+        if "cabinet/phone/.cache/" in rel:   # 池内绝对路径（历史构造）→ data/ 映射
+            rel = "data/" + rel.split("cabinet/phone/.cache/", 1)[1]
         img = imread_cn(HERE / rel)
         det = inf.detect_with_check(img)
         if det is None:

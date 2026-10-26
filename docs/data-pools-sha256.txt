@@ -149,3 +149,5 @@ f7011ddfdb799835cf3e8a29f94007ef1b463b311b8e17a6ac3c4b3e1f8329e3  data/real_rf_p
 
 # 以下 4 项为会话/评测运行产物（非数据资产），运行时自动重生，不入指纹：
 # ctx_v37.json ctx_v38a.json（历史上下文转储）export_report.json nano17_eval.json（评测输出）
+# 注：corner_qq_basis.npz 为仓内重建版（files 指向 data/qq_basis/，corners GT 与源逐元素相等），
+# 副本指纹 8aa71266040e161e5ab75f2c3fab9007905e4623fbd9b1093d56f0d63ddf0be8（源版指纹条目以此为准更新）

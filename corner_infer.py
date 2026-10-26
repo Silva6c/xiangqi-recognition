@@ -44,6 +44,8 @@ class CornerInfer:
     def __init__(self, torch_weights: Path | None = None, onnx_path: Path | None = None):
         self.sess = None
         self.model = None
+        if torch_weights is not None and str(torch_weights).endswith(".onnx"):
+            onnx_path, torch_weights = torch_weights, None   # 按后缀自动分流（易用性）
         if onnx_path is not None:
             import onnxruntime as ort
             self.sess = ort.InferenceSession(str(onnx_path), providers=["CPUExecutionProvider"])
@@ -65,6 +67,31 @@ class CornerInfer:
             hx, hy = self.model(torch.from_numpy(x[None]))
         return hx[0].numpy(), hy[0].numpy()
 
+    def _decode_auto(self, hx: np.ndarray, hy: np.ndarray) -> np.ndarray:
+        """三代契约自动分流（按每头分布数）：4=v64 直回归、3=v67 box、7=v68 混合。
+
+        发布权重 corner_simcc_v1.onnx 是 v4（[4,512]），实验权重是 v67/v68——
+        评测链必须能跑全部三代（baseline 复现与实验对拍同工具）。
+        """
+        n = hx.shape[0]
+        if n == 4:   # v64 直回归：4 角点各自 (x,y) 分布，argmax/512×256
+            return np.stack([hx.argmax(1) / SIMCC_BINS * CORNER_IN,
+                             hy.argmax(1) / SIMCC_BINS * CORNER_IN], 1).astype(np.float32)
+        gt14 = np.zeros(NPK + 8, np.float32)
+        if n == 3:   # v67 box：x 头 (cx,ux,vx)，y 头 (cy,uy,vy)，残差恒 0
+            for j, p in enumerate((0, 2, 4)):
+                gt14[p] = hx[j].argmax() / SIMCC_BINS * (ALL_HI[p] - ALL_LO[p]) + ALL_LO[p]
+            for j, p in enumerate((1, 3, 5)):
+                gt14[p] = hy[j].argmax() / SIMCC_BINS * (ALL_HI[p] - ALL_LO[p]) + ALL_LO[p]
+        elif n == 7:  # v68 混合：box6 + 残差8（X_CH/Y_CH 全局序）
+            for j, p in enumerate(X_CH):
+                gt14[p] = hx[j].argmax() / SIMCC_BINS * (ALL_HI[p] - ALL_LO[p]) + ALL_LO[p]
+            for j, p in enumerate(Y_CH):
+                gt14[p] = hy[j].argmax() / SIMCC_BINS * (ALL_HI[p] - ALL_LO[p]) + ALL_LO[p]
+        else:
+            raise ValueError(f"未知角点模型契约：每头 {n} 分布（期望 4/3/7）")
+        return corners_from_parts_np(gt14)
+
     def detect(self, frame_bgr: np.ndarray) -> np.ndarray | None:
         h, w = frame_bgr.shape[:2]
         M = corner_affine(w, h)
@@ -73,12 +100,7 @@ class CornerInfer:
         rgb = cv2.cvtColor(warped, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
         x = (rgb.transpose(2, 0, 1) - IMAGENET_MEAN.reshape(3, 1, 1)) / IMAGENET_STD.reshape(3, 1, 1)
         hx, hy = self._run(x)
-        gt14 = np.zeros(NPK + 8, np.float32)
-        for j, p in enumerate(X_CH):
-            gt14[p] = hx[j].argmax() / SIMCC_BINS * (ALL_HI[p] - ALL_LO[p]) + ALL_LO[p]
-        for j, p in enumerate(Y_CH):
-            gt14[p] = hy[j].argmax() / SIMCC_BINS * (ALL_HI[p] - ALL_LO[p]) + ALL_LO[p]
-        kps = corners_from_parts_np(gt14)                # [4,2] 256 空间
+        kps = self._decode_auto(hx, hy)                  # [4,2] 256 空间
         inv = cv2.invertAffineTransform(M)
         ones = np.concatenate([kps, np.ones((4, 1), np.float32)], axis=1)
         return (inv @ ones.T).T  # [4,2] 原图坐标

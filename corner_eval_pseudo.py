@@ -42,7 +42,9 @@ def main():
     files, gts, doms = d["files"][keep], d["corners"][keep], d["domain"][keep]
     stats = {}
     for f, gt, dom in zip(files, gts, doms):
-        img = imread_cn(HERE / str(f))
+        # 池内 files 可能带历史前缀 ..\..\.cache（原工作目录约定，斜杠随 OS）→ 统一映射 data/
+        rel = str(f).replace("\\", "/").replace("../../.cache", "data")
+        img = imread_cn(HERE / rel)
         det = inf.detect_with_check(img)
         if det is None:
             ok, dist = False, 9999.0
@@ -63,7 +65,7 @@ def main():
     (HERE / "data/reports").mkdir(parents=True, exist_ok=True)
     (HERE / "data/reports/corner_pseudo_eval.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
-    print("已存 .cache/corner_pseudo_eval.json")
+    print("已存 data/reports/corner_pseudo_eval.json")
 
 
 if __name__ == "__main__":

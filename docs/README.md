@@ -45,6 +45,7 @@ v38（性能研究/渲染提速）· [v42](v42真实域监督数据方案-202610
 | [data-pools-sha256.txt](data-pools-sha256.txt) | 数据资产完整性指纹（141 项 sha256，拷贝后逐行核对） |
 | [当前状态.md](当前状态.md) | 原项目活页状态快照（分家时点全文留存） |
 | [LATENCY_NOTES.md](LATENCY_NOTES.md) | 端到端延迟实测记录（tools/bench_real_device.sh 配套） |
+| [runs训练历史迁移说明-20261027.md](runs训练历史迁移说明-20261027.md) | 产品仓 runs/ 全量训练史迁入记录（v1~v68 唯一副本，qq_basis 依赖落位） |
 
 **协作与资产**
 | 文档 | 一句话 |

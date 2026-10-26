@@ -19,7 +19,7 @@ import renderer as R
 from annotate_real import IM_MEAN, IM_STD, NANO_V3, shrink_corners
 
 HERE = Path(__file__).resolve().parent
-REPO = HERE.parents[2]
+REPO = HERE  # 平铺布局：脚本即仓根
 V3 = HERE / "runs/v3/gridhead_fp32.onnx"
 CLS = R.CLASS_CHARS
 

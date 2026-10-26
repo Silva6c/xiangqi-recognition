@@ -54,7 +54,7 @@ def build_rendered(name: str, seed: int, fonts: list, n: int, hard: bool) -> Non
 
 def build_bench(force: bool = False) -> None:
     """bench 底片 → 分类输入 + 真值标注 + 负样本（abstain 评测用）"""
-    repo = Path(__file__).parents[3]
+    repo = Path(__file__).resolve().parent
     cases_path = repo / "testdata/recog-bench/cases.json"
     bench_dir = repo / ".shots/bench"
     if not cases_path.exists() or not bench_dir.exists():

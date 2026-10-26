@@ -41,7 +41,7 @@ import renderer as R
 import train as T
 
 HERE = Path(__file__).resolve().parent
-NANO_V3 = HERE.parents[1] / "app/src/main/assets/models/nano_v3-0319.onnx"
+NANO_V3 = os.environ.get("XRCG_NANO", "")  # nano teacher 不可分发：自备路径
 ROOT = (HERE.parent.parent.parent
         / "data/roboflow_raw/classification/chinese-chess-classification-efbok/v1")
 OUT_NPZ = HERE / "data/efbok_patch_lib.npz"

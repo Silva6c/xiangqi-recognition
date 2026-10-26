@@ -47,8 +47,8 @@ import renderer as R
 import train as T
 
 HERE = Path(__file__).resolve().parent
-NANO_V3 = HERE.parents[1] / "app/src/main/assets/models/nano_v3-0319.onnx"
-ROOT = HERE.parent.parent.parent / "data/roboflow_raw/detection_14class"
+NANO_V3 = os.environ.get("XRCG_NANO", "")  # nano teacher 不可分发：--nano/环境变量自备路径
+ROOT = HERE / "data/roboflow_raw/detection_14class"  # 数据根（本仓 data/）
 OUT_NPZ = HERE / "data/vn_raw_patch_lib.npz"
 BAN = ("K", "k")                    # 防双帅：与主库同规则
 

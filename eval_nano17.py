@@ -29,7 +29,7 @@ import eval_screen30 as _ES                   # noqa: E402  sess_nano 等模块�
 from corner_infer import CornerInfer          # noqa: E402
 from diag_two_domains import CLS              # noqa: E402  ".xKABNRCPkabnrcp"
 
-ORIGIN = HERE / "../../../data/external/chinese-chess-recognition/docs/sota/origin"
+ORIGIN = HERE / "data/external/chinese-chess-recognition/docs/sota/origin"
 TRUTH = HERE / "data/nano17_truth.json"
 OUT = HERE / "data/reports/nano17_eval.json"
 

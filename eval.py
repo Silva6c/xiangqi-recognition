@@ -17,6 +17,10 @@
 """
 from __future__ import annotations
 
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+
 import argparse
 import json
 import time
@@ -111,7 +115,8 @@ def main():
     engines = [
         Engine("new_fp32", mdir / "gridhead_fp32.onnx"),
         Engine("new_int8", mdir / "gridhead_int8.onnx"),
-        Engine("nano_v3", Path(__file__).parents[2] / "app/src/main/assets/models/nano_v3-0319.onnx"),
+        # nano 不可分发（第三方红线）：自备路径放 data/nano_v3-0319.onnx 可启用对照
+        *( [Engine("nano_v3", HERE / "data/nano_v3-0319.onnx")] if (HERE / "data/nano_v3-0319.onnx").exists() else [] ),
     ]
 
     data_dir = Path(__file__).parent / "data"

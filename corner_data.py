@@ -356,7 +356,10 @@ class RealPool:
         i = rng.randrange(len(self.files))
         if i not in self._cache:
             self._cache.clear()  # 常驻 ≤1 张原图（1080×2280×3 ≈ 7MB），防内存堆积
-            self._cache[i] = imread_cn(self.root / self.files[i])
+            # 池内 files 可能带历史前缀 ..\..\.cache（原工作目录约定，斜杠随 OS）
+            # → 统一映射到本仓 data/（与 corner_eval_pseudo 同款归一）
+            rel = str(self.files[i]).replace("\\", "/").replace("../../.cache", "data")
+            self._cache[i] = imread_cn(self.root / rel)
         return self._cache[i], self.corners[i]
 
 

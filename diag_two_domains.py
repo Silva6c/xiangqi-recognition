@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from pose_corner import warp_frame_to_warp450  # noqa: E402
 import renderer as R  # noqa: E402
 
-REPO = Path(__file__).resolve().parents[3]
+REPO = Path(__file__).resolve().parent  # 平铺布局：脚本即仓根
 IM_MEAN = np.array([0.485, 0.456, 0.406], np.float32).reshape(3, 1, 1)
 IM_STD = np.array([0.229, 0.224, 0.225], np.float32).reshape(3, 1, 1)
 CLS = ".xKABNRCPkabnrcp"

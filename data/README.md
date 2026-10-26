@@ -3,6 +3,15 @@
 训练与评测的数据缓存根。**新环境接手时按本说明逐项落位**；脚本一律以仓库根为
 工作目录、以 `data/` 为缓存根。
 
+## 落位状态（2026-10-27）
+
+**本机 data/ 已全量落位并核对**：评测底片+训练池 36.5GB（recog/data 平移）、
+roboflow_raw 1.1GB、corner 系池 202MB（data/pools/）、fonts 629MB、
+外部底片 external 180MB、QQ 基准图 data/qq_basis/。完整性指纹
+[docs/data-pools-sha256.txt](../docs/data-pools-sha256.txt)（141 项全对）。
+原工作目录副本已按指纹核对后清除——**本目录是唯一副本，谨慎对待**。
+真实帧（real_frames/vid_frames）含录屏画面，仅本机训练自用，严禁分发。
+
 ## 目录布局
 
 | 位置 | 内容 | 重建方式 |

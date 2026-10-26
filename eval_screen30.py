@@ -49,9 +49,17 @@ try:
     sess_nano = ort.InferenceSession(NANO, providers=["CPUExecutionProvider"])
 except Exception:                                    # noqa: BLE001 缺文件/加载失败
     sess_nano = None
-model = CellCls()
-model.load_state_dict(torch.load(str(HERE / "runs/cell_v3/best.pt"), map_location="cpu"))
-model.eval()
+# cell_cls 加载：历史 torch 权重（runs/cell_v3/best.pt，训练产物不入 git）优先，
+# 缺失降级 weights/cell_cls_fp32.onnx（同一权重的发布形态，输出 [90,15] 等价）
+model = None
+_sess_cell = None
+try:
+    model = CellCls()
+    model.load_state_dict(torch.load(str(HERE / "runs/cell_v3/best.pt"), map_location="cpu"))
+    model.eval()
+except Exception:                                    # noqa: BLE001 训练产物缺失
+    _sess_cell = ort.InferenceSession(str(HERE / "weights/cell_cls_fp32.onnx"),
+                                      providers=["CPUExecutionProvider"])
 
 from pose_corner import PoseCornerDetector, warp_frame_to_warp450
 
@@ -94,11 +102,18 @@ def nano_pred(img280_rgb: np.ndarray) -> np.ndarray:
 
 def cell_out(img280_rgb: np.ndarray):
     cells, _ = crop_cells(img280_rgb, np.zeros(90, np.int64))
-    with torch.no_grad():
-        lo = model(torch.from_numpy(cells.astype(np.float32)).permute(0, 3, 1, 2).div(255))
-    pp = torch.softmax(lo, 1)
-    c, cp = pp.max(1)
-    return cp.numpy(), c.numpy()
+    x = cells.astype(np.float32).transpose(0, 3, 1, 2) / 255.0
+    if model is not None:
+        with torch.no_grad():
+            lo = model(torch.from_numpy(x))
+        pp = torch.softmax(lo, 1)
+        c, cp = pp.max(1)
+        return cp.numpy(), c.numpy()
+    lo = _sess_cell.run(None, {None: x})[0]           # [90,15] logits（onnx 等价）
+    e = np.exp(lo - lo.max(-1, keepdims=True))
+    pp = e / e.sum(-1, keepdims=True)
+    cp = pp.argmax(1)
+    return cp, pp.max(1)
 
 
 def full_cascade(top1, pmax, second, cp, cc):

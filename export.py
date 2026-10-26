@@ -310,7 +310,7 @@ def main():
     report["int8_ms_desktop"] = int8_ms
 
     # 7) 与旧 nano_v3 同口径延迟对比（同输入、桌面 CPU）
-    nano = Path(__file__).parents[2] / "app/src/main/assets/models/nano_v3-0319.onnx"
+    nano = Path(__file__).resolve().parent / "data/nano_v3-0319.onnx"  # 不可分发：自备可启用对照
     if nano.exists():
         s_nano = ort.InferenceSession(str(nano), providers=["CPUExecutionProvider"])
         iname = s_nano.get_inputs()[0].name

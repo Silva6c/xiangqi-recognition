@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""QQ 事故截图基准池制作（v67 判据：QQ 象棋截图定位全对，不入库临时脚本）。
+"""QQ 事故截图基准池制作（v67 判据：QQ 象棋截图定位全对）。
+
+【运行前提】需要 runs/corner_v4/best.pt（v64 系 4 角点契约的历史训练产物，本仓
+默认不含——训练产物不入 git）。本仓已发布重建好的 corner_qq_basis.npz
+（GT 永不变），仅当重建截图池时才需要本脚本+历史权重。
 
 GT = v4 定位结果（v4 全链路 89/90 目检实证其在该截图定位正确）+ 目检可视化复核。
 输出 phone/.cache/corner_qq_basis.npz（files + corners 模型序 [TL,TR,BL,BR]）。
@@ -18,7 +22,7 @@ sys.path.insert(0, str(HERE))
 from cell_model import DWBlk  # noqa: E402
 from pose_corner import IMAGENET_MEAN, IMAGENET_STD, corner_affine  # noqa: E402
 
-IMG = Path(r"C:\Users\12567\Downloads\Screenshot_20261026_060632_com.tencent.qqgame.xq.jpg")
+IMG = HERE / "data/qq_basis/Screenshot_20261026_060632_com.tencent.qqgame.xq.jpg"  # 已落位仓内
 CORNER_IN = 256
 
 
